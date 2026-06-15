@@ -88,6 +88,8 @@ public class MainActivity extends AppCompatActivity {
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Mantener la pantalla encendida siempre que la app esté en primer plano
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
         // 1. Inicializar todas las vistas (NUEVO ORDEN Y VISTAS)
