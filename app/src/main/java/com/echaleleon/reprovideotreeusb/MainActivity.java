@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowInsets;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtTiempoActual;
     private TextView txtTiempoRestante;
     private ImageView imgFeedback;
+    private boolean isUserHolding = false;
     private final android.os.Handler handlerProgreso = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable runnableProgreso;
 
@@ -123,17 +125,25 @@ public class MainActivity extends AppCompatActivity {
         // ZONA IZQUIERDA: Video anterior O rebobinar si se mantiene presionado
         zonaIzquierda.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                isUserHolding = true;
                 pressStartTime = System.currentTimeMillis();
+                mostrarFeedback(0);
+                
                 handlerSeek.postDelayed(() -> {
-                    iniciarSeekLoop(-configSeekSeconds * 1000);
-                    mostrarFeedback(android.R.drawable.ic_media_rew);
+                    if (isUserHolding) {
+                        iniciarSeekLoop(-configSeekSeconds * 1000);
+                        mostrarFeedback(android.R.drawable.ic_media_rew);
+                    }
                 }, 3000);
                 return true;
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                isUserHolding = false;
                 handlerSeek.removeCallbacksAndMessages(null);
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     irAlVideoAnterior();
                     mostrarFeedback(android.R.drawable.ic_media_previous);
+                } else {
+                    mostrarFeedback(0); 
                 }
                 return true;
             }
@@ -141,30 +151,52 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // ZONA CENTRO: Alternar entre Reproducir (Play) y Pausar (Pause)
-        zonaCentro.setOnClickListener(v -> {
-            if (exoPlayer.isPlaying()) {
-                exoPlayer.pause();
-                mostrarFeedback(android.R.drawable.ic_media_pause);
-            } else {
-                exoPlayer.play();
-                mostrarFeedback(android.R.drawable.ic_media_play);
+        zonaCentro.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                isUserHolding = true;
+                pressStartTime = System.currentTimeMillis();
+                mostrarFeedback(0);
+                return true;
+            } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                isUserHolding = false;
+                if (System.currentTimeMillis() - pressStartTime < 3000) {
+                    if (exoPlayer.isPlaying()) {
+                        exoPlayer.pause();
+                        mostrarFeedback(android.R.drawable.ic_media_pause);
+                    } else {
+                        exoPlayer.play();
+                        mostrarFeedback(android.R.drawable.ic_media_play);
+                    }
+                } else {
+                    mostrarFeedback(0);
+                }
+                return true;
             }
+            return true;
         });
 
         // ZONA DERECHA: Siguiente video O adelantar si se mantiene presionado
         zonaDerecha.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                isUserHolding = true;
                 pressStartTime = System.currentTimeMillis();
+                mostrarFeedback(0);
+
                 handlerSeek.postDelayed(() -> {
-                    iniciarSeekLoop(configSeekSeconds * 1000);
-                    mostrarFeedback(android.R.drawable.ic_media_ff);
+                    if (isUserHolding) {
+                        iniciarSeekLoop(configSeekSeconds * 1000);
+                        mostrarFeedback(android.R.drawable.ic_media_ff);
+                    }
                 }, 3000);
                 return true;
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+                isUserHolding = false;
                 handlerSeek.removeCallbacksAndMessages(null);
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     irAlSiguienteVideo();
                     mostrarFeedback(android.R.drawable.ic_media_next);
+                } else {
+                    mostrarFeedback(0);
                 }
                 return true;
             }
@@ -648,15 +680,18 @@ public class MainActivity extends AppCompatActivity {
         }
         layoutProgreso.setVisibility(View.VISIBLE);
 
+        // Cancelar cualquier ocultamiento programado previo
         imgFeedback.removeCallbacks(null);
         layoutProgreso.removeCallbacks(null);
 
-        Runnable ocultar = () -> {
-            imgFeedback.setVisibility(View.GONE);
-            layoutProgreso.setVisibility(View.GONE);
-        };
-
-        imgFeedback.postDelayed(ocultar, 3000);
+        // SOLO programar el ocultamiento si el usuario NO está presionando la pantalla
+        if (!isUserHolding) {
+            Runnable ocultar = () -> {
+                imgFeedback.setVisibility(View.GONE);
+                layoutProgreso.setVisibility(View.GONE);
+            };
+            imgFeedback.postDelayed(ocultar, 3000);
+        }
     }
 
     private void iniciarHilosProgreso() {
@@ -843,6 +878,61 @@ public class MainActivity extends AppCompatActivity {
             exoPlayer.release();
         }
     }
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int keyCode = event.getKeyCode();
+        int action = event.getAction();
+
+        if (action == KeyEvent.ACTION_DOWN) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                case KeyEvent.KEYCODE_HEADSETHOOK:
+                    if (exoPlayer != null) {
+                        if (exoPlayer.isPlaying()) {
+                            exoPlayer.pause();
+                            mostrarFeedback(android.R.drawable.ic_media_pause);
+                        } else {
+                            exoPlayer.play();
+                            mostrarFeedback(android.R.drawable.ic_media_play);
+                        }
+                    }
+                    return true;
+
+                case KeyEvent.KEYCODE_MEDIA_PLAY:
+                    if (exoPlayer != null) {
+                        exoPlayer.play();
+                        mostrarFeedback(android.R.drawable.ic_media_play);
+                    }
+                    return true;
+
+                case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                    if (exoPlayer != null) {
+                        exoPlayer.pause();
+                        mostrarFeedback(android.R.drawable.ic_media_pause);
+                    }
+                    return true;
+
+                case KeyEvent.KEYCODE_MEDIA_NEXT:
+                    irAlSiguienteVideo();
+                    mostrarFeedback(android.R.drawable.ic_media_next);
+                    return true;
+
+                case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                    irAlVideoAnterior();
+                    mostrarFeedback(android.R.drawable.ic_media_previous);
+                    return true;
+                    
+                case KeyEvent.KEYCODE_MEDIA_STOP:
+                    if (exoPlayer != null) {
+                        exoPlayer.stop();
+                        mostrarFeedback(android.R.drawable.ic_media_pause);
+                    }
+                    return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
     private void escanearYRefrescar() {
         // 1. Buscamos en /storage/ (donde Android monta los USB/SD externos)
         File storage = new File("/storage/");
