@@ -78,6 +78,9 @@ public class MainActivity extends AppCompatActivity {
 
     private int configItemHeight = 100; // Default en dp
     private int configTextSize = 32;   // Default en sp
+    private String configDefaultFolder = "Videos Musicales";
+    private boolean configTitleTop = true;
+    private int configSeekSeconds = 10;
     private ImageButton btnConfiguracion;
 
 
@@ -94,6 +97,9 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
         configItemHeight = prefs.getInt("item_height", 100);
         configTextSize = prefs.getInt("text_size", 32);
+        configDefaultFolder = prefs.getString("default_folder", "Videos Musicales");
+        configTitleTop = prefs.getBoolean("title_top", true);
+        configSeekSeconds = prefs.getInt("seek_seconds", 10);
 
         btnConfiguracion.setOnClickListener(v -> mostrarDialogoConfiguracion());
 
@@ -119,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 pressStartTime = System.currentTimeMillis();
                 handlerSeek.postDelayed(() -> {
-                    iniciarSeekLoop(-10000);
+                    iniciarSeekLoop(-configSeekSeconds * 1000);
                     mostrarFeedback(android.R.drawable.ic_media_rew);
                 }, 3000);
                 return true;
@@ -150,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 pressStartTime = System.currentTimeMillis();
                 handlerSeek.postDelayed(() -> {
-                    iniciarSeekLoop(10000);
+                    iniciarSeekLoop(configSeekSeconds * 1000);
                     mostrarFeedback(android.R.drawable.ic_media_ff);
                 }, 3000);
                 return true;
@@ -615,6 +621,20 @@ public class MainActivity extends AppCompatActivity {
 
     private void mostrarNombreVideo(String nombre) {
         txtNombreVideo.setText(nombre);
+        
+        // Ajustar posición según configuración
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) txtNombreVideo.getLayoutParams();
+        if (configTitleTop) {
+            params.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL;
+            params.topMargin = (int) (20 * getResources().getDisplayMetrics().density);
+            params.bottomMargin = 0;
+        } else {
+            params.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL;
+            params.bottomMargin = (int) (100 * getResources().getDisplayMetrics().density); // Un poco arriba de la barra de progreso
+            params.topMargin = 0;
+        }
+        txtNombreVideo.setLayoutParams(params);
+        
         txtNombreVideo.setVisibility(View.VISIBLE);
 
         // Oculta el nombre automáticamente después de 3 segundos
@@ -726,19 +746,41 @@ public class MainActivity extends AppCompatActivity {
         inputTextSize.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         layout.addView(inputTextSize);
 
+        final EditText inputDefaultFolder = new EditText(this);
+        inputDefaultFolder.setHint("Carpeta inicial - Actual: " + configDefaultFolder);
+        layout.addView(inputDefaultFolder);
+
+        final EditText inputSeekSeconds = new EditText(this);
+        inputSeekSeconds.setHint("Segundos salto - Actual: " + configSeekSeconds);
+        inputSeekSeconds.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        layout.addView(inputSeekSeconds);
+
+        final android.widget.CheckBox checkTitleTop = new android.widget.CheckBox(this);
+        checkTitleTop.setText("Título arriba (desmarcar para abajo)");
+        checkTitleTop.setChecked(configTitleTop);
+        layout.addView(checkTitleTop);
+
         new AlertDialog.Builder(this)
                 .setTitle("Ajustar Apariencia")
                 .setView(layout)
                 .setPositiveButton("Guardar", (dialog, which) -> {
                     String h = inputHeight.getText().toString();
                     String t = inputTextSize.getText().toString();
+                    String f = inputDefaultFolder.getText().toString();
+                    String s = inputSeekSeconds.getText().toString();
 
                     if (!h.isEmpty()) configItemHeight = Integer.parseInt(h);
                     if (!t.isEmpty()) configTextSize = Integer.parseInt(t);
+                    if (!f.isEmpty()) configDefaultFolder = f;
+                    if (!s.isEmpty()) configSeekSeconds = Integer.parseInt(s);
+                    configTitleTop = checkTitleTop.isChecked();
 
                     SharedPreferences.Editor editor = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
                     editor.putInt("item_height", configItemHeight);
                     editor.putInt("text_size", configTextSize);
+                    editor.putString("default_folder", configDefaultFolder);
+                    editor.putInt("seek_seconds", configSeekSeconds);
+                    editor.putBoolean("title_top", configTitleTop);
                     editor.apply();
 
                     // Refrescar la carpeta actual para aplicar cambios
@@ -809,6 +851,16 @@ public class MainActivity extends AppCompatActivity {
                 // El emulador usa un ID como '0000-0000', los radios suelen usar 'sda1' o 'usb'
                 // Filtramos la memoria interna ('emulated') y la propia carpeta 'self'
                 if (f.isDirectory() && !f.getName().equals("emulated") && !f.getName().equals("self")) {
+                    
+                    // INTENTO DE ENTRAR A LA CARPETA CONFIGURADA
+                    if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
+                        File carpetaFav = new File(f, configDefaultFolder);
+                        if (carpetaFav.exists() && carpetaFav.isDirectory()) {
+                            navegarACarpeta(carpetaFav);
+                            return;
+                        }
+                    }
+
                     navegarACarpeta(f);
                     return; // Si encontramos algo en /storage/ que no es la memoria interna, entramos ahí.
                 }
@@ -820,6 +872,15 @@ public class MainActivity extends AppCompatActivity {
         if (mnt.exists() && mnt.listFiles() != null) {
             for (File f : mnt.listFiles()) {
                 if (f.isDirectory() && (f.getName().toLowerCase().contains("usb") || f.getName().toLowerCase().contains("sd"))) {
+                    
+                    if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
+                        File carpetaFav = new File(f, configDefaultFolder);
+                        if (carpetaFav.exists() && carpetaFav.isDirectory()) {
+                            navegarACarpeta(carpetaFav);
+                            return;
+                        }
+                    }
+
                     navegarACarpeta(f);
                     return;
                 }
@@ -827,7 +888,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // 3. Último recurso: memoria interna
-        navegarACarpeta(Environment.getExternalStorageDirectory());
+        File interna = Environment.getExternalStorageDirectory();
+        if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
+            File carpetaFav = new File(interna, configDefaultFolder);
+            if (carpetaFav.exists() && carpetaFav.isDirectory()) {
+                navegarACarpeta(carpetaFav);
+                return;
+            }
+        }
+        navegarACarpeta(interna);
     }
 
 
