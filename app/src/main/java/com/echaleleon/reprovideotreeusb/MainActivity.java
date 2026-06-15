@@ -158,9 +158,19 @@ public class MainActivity extends AppCompatActivity {
                 isUserHolding = true;
                 pressStartTime = System.currentTimeMillis();
                 mostrarFeedback(0, android.view.Gravity.CENTER);
+
+                handlerSeek.postDelayed(() -> {
+                    if (isUserHolding) {
+                        exoPlayer.stop();
+                        escanearYRefrescar();
+                        Toast.makeText(this, "Regresando al inicio...", Toast.LENGTH_SHORT).show();
+                    }
+                }, 3000);
+                
                 return true;
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 isUserHolding = false;
+                handlerSeek.removeCallbacksAndMessages(null);
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     if (exoPlayer.isPlaying()) {
                         exoPlayer.pause();
