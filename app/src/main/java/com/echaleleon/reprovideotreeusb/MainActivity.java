@@ -11,6 +11,8 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ListView;
@@ -20,6 +22,8 @@ import android.widget.LinearLayout;
 import android.content.SharedPreferences;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import androidx.appcompat.app.AlertDialog;
 
 
@@ -50,6 +54,15 @@ public class MainActivity extends AppCompatActivity {
     private View zonaIzquierda;
     private View zonaCentro;
     private View zonaDerecha;
+
+    private LinearLayout layoutProgreso;
+    private SeekBar seekBarVideo;
+    private TextView txtTiempoActual;
+    private TextView txtTiempoRestante;
+    private ImageView imgFeedback;
+    private final android.os.Handler handlerProgreso = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable runnableProgreso;
+
     // NUEVAS VARIABLES:
 
     private LinearLayout contenedorExplorador;
@@ -89,6 +102,12 @@ public class MainActivity extends AppCompatActivity {
         playerView = findViewById(R.id.playerView);
         txtNombreVideo = findViewById(R.id.txtNombreVideo);   // <-- ¡OBLIGATORIO!
 
+        layoutProgreso = findViewById(R.id.layoutProgreso);
+        seekBarVideo = findViewById(R.id.seekBarVideo);
+        txtTiempoActual = findViewById(R.id.txtTiempoActual);
+        txtTiempoRestante = findViewById(R.id.txtTiempoRestante);
+        imgFeedback = findViewById(R.id.imgFeedback);
+
         capaZonasToque = findViewById(R.id.capaZonasToque);
         zonaIzquierda = findViewById(R.id.zonaIzquierda);
         zonaCentro = findViewById(R.id.zonaCentro);
@@ -101,12 +120,14 @@ public class MainActivity extends AppCompatActivity {
                 pressStartTime = System.currentTimeMillis();
                 handlerSeek.postDelayed(() -> {
                     iniciarSeekLoop(-10000);
+                    mostrarFeedback(android.R.drawable.ic_media_rew);
                 }, 3000);
                 return true;
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 handlerSeek.removeCallbacksAndMessages(null);
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     irAlVideoAnterior();
+                    mostrarFeedback(android.R.drawable.ic_media_previous);
                 }
                 return true;
             }
@@ -117,8 +138,10 @@ public class MainActivity extends AppCompatActivity {
         zonaCentro.setOnClickListener(v -> {
             if (exoPlayer.isPlaying()) {
                 exoPlayer.pause();
+                mostrarFeedback(android.R.drawable.ic_media_pause);
             } else {
                 exoPlayer.play();
+                mostrarFeedback(android.R.drawable.ic_media_play);
             }
         });
 
@@ -128,16 +151,40 @@ public class MainActivity extends AppCompatActivity {
                 pressStartTime = System.currentTimeMillis();
                 handlerSeek.postDelayed(() -> {
                     iniciarSeekLoop(10000);
+                    mostrarFeedback(android.R.drawable.ic_media_ff);
                 }, 3000);
                 return true;
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 handlerSeek.removeCallbacksAndMessages(null);
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     irAlSiguienteVideo();
+                    mostrarFeedback(android.R.drawable.ic_media_next);
                 }
                 return true;
             }
             return true;
+        });
+
+        seekBarVideo.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    exoPlayer.seekTo(progress);
+                    txtTiempoActual.setText(formatearTiempo(progress));
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                handlerProgreso.removeCallbacks(runnableProgreso);
+                layoutProgreso.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                iniciarHilosProgreso();
+                layoutProgreso.postDelayed(() -> layoutProgreso.setVisibility(View.GONE), 3000);
+            }
         });
 
         // 1. Definimos el receptor con lógica mejorada
@@ -178,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
         contenedorExplorador.setVisibility(View.VISIBLE);
         contenedorVideo.setVisibility(View.GONE); // <-- MANEJAR EL CONTENEDOR, NO EL PLAYER
         capaZonasToque.setVisibility(View.GONE);
+        mostrarBarrasSistema();
 
         // 4. Inicializar ExoPlayer y su Listener Integrado
 
@@ -201,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
                             // 3. Decodificar la URI para quitar los %20 y obtener el nombre limpio
                             String nombreArchivo = Uri.decode(new File(uri).getName());
                             mostrarNombreVideo(nombreArchivo);
+                            mostrarFeedback(0); // Para mostrar la barra de progreso al cambiar
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -213,6 +262,8 @@ public class MainActivity extends AppCompatActivity {
             public void onPlaybackStateChanged(int playbackState) {
                 if (playbackState == Player.STATE_ENDED) {
                     reproducirSiguienteCarpetaGlobal();
+                } else if (playbackState == Player.STATE_READY) {
+                    iniciarHilosProgreso();
                 }
             }
 
@@ -283,6 +334,7 @@ public class MainActivity extends AppCompatActivity {
         contenedorExplorador.setVisibility(View.VISIBLE);
         contenedorVideo.setVisibility(View.GONE);
         capaZonasToque.setVisibility(View.GONE); // <-- Ocultar zonas táctiles
+        mostrarBarrasSistema();
 
         archivosEnCarpetaActual.clear();
         List<File> carpetas = new ArrayList<>();
@@ -347,6 +399,8 @@ public class MainActivity extends AppCompatActivity {
         contenedorExplorador.setVisibility(View.GONE);
         contenedorVideo.setVisibility(View.VISIBLE); // <-- ¡Cambio aquí!
         capaZonasToque.setVisibility(View.VISIBLE);
+        ocultarBarrasSistema();
+        mostrarFeedback(0); // Mostrar barra de progreso al iniciar
 
         exoPlayer.stop();
         exoPlayer.clearMediaItems();
@@ -455,6 +509,7 @@ public class MainActivity extends AppCompatActivity {
             contenedorVideo.setVisibility(View.GONE);
             capaZonasToque.setVisibility(View.GONE); // <-- Ocultar zonas táctiles
             contenedorExplorador.setVisibility(View.VISIBLE);
+            mostrarBarrasSistema();
         }
         // CASO B: Si ya estábamos viendo el explorador, usamos tu sistema de carpetas con la pila
         else if (pilaDeRutas.size() > 1) {
@@ -566,6 +621,96 @@ public class MainActivity extends AppCompatActivity {
         txtNombreVideo.postDelayed(() -> txtNombreVideo.setVisibility(View.GONE), 3000);
     }
 
+    private void mostrarFeedback(int resId) {
+        if (resId != 0) {
+            imgFeedback.setImageResource(resId);
+            imgFeedback.setVisibility(View.VISIBLE);
+        }
+        layoutProgreso.setVisibility(View.VISIBLE);
+
+        imgFeedback.removeCallbacks(null);
+        layoutProgreso.removeCallbacks(null);
+
+        Runnable ocultar = () -> {
+            imgFeedback.setVisibility(View.GONE);
+            layoutProgreso.setVisibility(View.GONE);
+        };
+
+        imgFeedback.postDelayed(ocultar, 3000);
+    }
+
+    private void iniciarHilosProgreso() {
+        if (runnableProgreso != null) handlerProgreso.removeCallbacks(runnableProgreso);
+
+        runnableProgreso = new Runnable() {
+            @Override
+            public void run() {
+                if (exoPlayer != null && exoPlayer.getPlaybackState() != Player.STATE_IDLE) {
+                    long currentPos = exoPlayer.getCurrentPosition();
+                    long duration = exoPlayer.getDuration();
+
+                    if (duration > 0) {
+                        seekBarVideo.setMax((int) duration);
+                        seekBarVideo.setProgress((int) currentPos);
+                        txtTiempoActual.setText(formatearTiempo(currentPos));
+                        txtTiempoRestante.setText("-" + formatearTiempo(duration - currentPos));
+                    }
+                }
+                handlerProgreso.postDelayed(this, 1000);
+            }
+        };
+        handlerProgreso.post(runnableProgreso);
+    }
+
+    private String formatearTiempo(long ms) {
+        int totalSegundos = (int) (ms / 1000);
+        int minutos = totalSegundos / 60;
+        int segundos = totalSegundos % 60;
+        return String.format(java.util.Locale.getDefault(), "%02d:%02d", minutos, segundos);
+    }
+
+    private void ocultarBarrasSistema() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            final WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            // Para versiones anteriores a Android 11
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN);
+        }
+    }
+
+    private void mostrarBarrasSistema() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            final WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            }
+        } else {
+            // Para versiones anteriores a Android 11
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE) {
+            ocultarBarrasSistema();
+        }
+    }
+
     private void mostrarDialogoConfiguracion() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -651,6 +796,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (runnableProgreso != null) handlerProgreso.removeCallbacks(runnableProgreso);
         if (exoPlayer != null) {
             exoPlayer.release();
         }

@@ -82,6 +82,61 @@
             android:gravity="center"
             android:visibility="gone" />
 
+        <!-- Barra de Progreso y Tiempos -->
+        <LinearLayout
+            android:id="@+id/layoutProgreso"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="vertical"
+            android:background="#80000000"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <SeekBar
+                android:id="@+id/seekBarVideo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:progressTint="#FFFFFF"
+                android:thumbTint="#FFFFFF" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="15dp"
+                android:paddingEnd="15dp">
+
+                <TextView
+                    android:id="@+id/txtTiempoActual"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/txtTiempoRestante"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:text="-00:00"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
+            </RelativeLayout>
+        </LinearLayout>
+
+        <!-- Iconos de Feedback -->
+        <ImageView
+            android:id="@+id/imgFeedback"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="center"
+            android:background="@drawable/circle_background"
+            android:padding="15dp"
+            app:tint="#FFFFFF"
+            android:visibility="gone"
+            android:elevation="15dp"
+            android:contentDescription="Feedback" />
 
     </FrameLayout>
 
