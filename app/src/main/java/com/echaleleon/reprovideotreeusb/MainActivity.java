@@ -933,6 +933,15 @@ public class MainActivity extends AppCompatActivity {
         return super.dispatchKeyEvent(event);
     }
 
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // Evita que la UI se rompa al rotar, manteniendo el modo inmersivo si el video está activo
+        if (contenedorVideo.getVisibility() == View.VISIBLE) {
+            ocultarBarrasSistema();
+        }
+    }
+
     private void escanearYRefrescar() {
         // 1. Buscamos en /storage/ (donde Android monta los USB/SD externos)
         File storage = new File("/storage/");
