@@ -25,6 +25,9 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.textfield.TextInputEditText;
 import androidx.appcompat.app.AlertDialog;
 
 
@@ -784,48 +787,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void mostrarDialogoConfiguracion() {
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 40, 50, 10);
+        View view = getLayoutInflater().inflate(R.layout.dialog_settings, null);
+        
+        TextInputEditText editHeight = view.findViewById(R.id.editItemHeight);
+        TextInputEditText editTextSize = view.findViewById(R.id.editTextSize);
+        TextInputEditText editFolder = view.findViewById(R.id.editDefaultFolder);
+        TextInputEditText editSeek = view.findViewById(R.id.editSeekSeconds);
+        SwitchMaterial switchTitle = view.findViewById(R.id.switchTitlePosition);
 
-        final EditText inputHeight = new EditText(this);
-        inputHeight.setHint("Altura del item (dp) - Actual: " + configItemHeight);
-        inputHeight.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        layout.addView(inputHeight);
+        // Cargar valores actuales
+        editHeight.setText(String.valueOf(configItemHeight));
+        editTextSize.setText(String.valueOf(configTextSize));
+        editFolder.setText(configDefaultFolder);
+        editSeek.setText(String.valueOf(configSeekSeconds));
+        switchTitle.setChecked(configTitleTop);
 
-        final EditText inputTextSize = new EditText(this);
-        inputTextSize.setHint("Tamaño de letra (sp) - Actual: " + configTextSize);
-        inputTextSize.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        layout.addView(inputTextSize);
-
-        final EditText inputDefaultFolder = new EditText(this);
-        inputDefaultFolder.setHint("Carpeta inicial - Actual: " + configDefaultFolder);
-        layout.addView(inputDefaultFolder);
-
-        final EditText inputSeekSeconds = new EditText(this);
-        inputSeekSeconds.setHint("Segundos salto - Actual: " + configSeekSeconds);
-        inputSeekSeconds.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        layout.addView(inputSeekSeconds);
-
-        final android.widget.CheckBox checkTitleTop = new android.widget.CheckBox(this);
-        checkTitleTop.setText("Título arriba (desmarcar para abajo)");
-        checkTitleTop.setChecked(configTitleTop);
-        layout.addView(checkTitleTop);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Ajustar Apariencia")
-                .setView(layout)
-                .setPositiveButton("Guardar", (dialog, which) -> {
-                    String h = inputHeight.getText().toString();
-                    String t = inputTextSize.getText().toString();
-                    String f = inputDefaultFolder.getText().toString();
-                    String s = inputSeekSeconds.getText().toString();
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Configuración Avanzada")
+                .setIcon(android.R.drawable.ic_menu_preferences)
+                .setView(view)
+                .setPositiveButton("Guardar Cambios", (dialog, which) -> {
+                    String h = editHeight.getText().toString();
+                    String t = editTextSize.getText().toString();
+                    String f = editFolder.getText().toString();
+                    String s = editSeek.getText().toString();
 
                     if (!h.isEmpty()) configItemHeight = Integer.parseInt(h);
                     if (!t.isEmpty()) configTextSize = Integer.parseInt(t);
                     if (!f.isEmpty()) configDefaultFolder = f;
                     if (!s.isEmpty()) configSeekSeconds = Integer.parseInt(s);
-                    configTitleTop = checkTitleTop.isChecked();
+                    configTitleTop = switchTitle.isChecked();
 
                     SharedPreferences.Editor editor = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
                     editor.putInt("item_height", configItemHeight);
@@ -835,10 +826,10 @@ public class MainActivity extends AppCompatActivity {
                     editor.putBoolean("title_top", configTitleTop);
                     editor.apply();
 
-                    // Refrescar la carpeta actual para aplicar cambios
                     if (!pilaDeRutas.isEmpty()) {
                         navegarACarpeta(pilaDeRutas.peek());
                     }
+                    Toast.makeText(this, "Configuración guardada", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
