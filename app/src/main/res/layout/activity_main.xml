@@ -68,6 +68,36 @@
             app:surface_type="texture_view"
             android:background="#000000" />
 
+        <!-- Capa de Zonas de Toque: Ahora dentro del contenedor pero antes de los controles -->
+        <LinearLayout
+            android:id="@+id/capaZonasToque"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/zonaIzquierda"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground" />
+
+            <View
+                android:id="@+id/zonaCentro"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground" />
+
+            <View
+                android:id="@+id/zonaDerecha"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/txtNombreVideo"
             android:layout_width="wrap_content"
@@ -82,7 +112,7 @@
             android:gravity="center"
             android:visibility="gone" />
 
-        <!-- Barra de Progreso y Tiempos -->
+        <!-- Barra de Progreso y Tiempos: Puesta AL FINAL para que esté sobre las zonas de toque -->
         <LinearLayout
             android:id="@+id/layoutProgreso"
             android:layout_width="match_parent"
@@ -91,7 +121,8 @@
             android:orientation="vertical"
             android:background="#80000000"
             android:padding="8dp"
-            android:visibility="gone">
+            android:visibility="gone"
+            android:elevation="20dp">
 
             <SeekBar
                 android:id="@+id/seekBarVideo"
@@ -141,43 +172,5 @@
             android:contentDescription="Feedback" />
 
     </FrameLayout>
-
-    <LinearLayout
-        android:id="@+id/capaZonasToque"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:orientation="horizontal"
-        android:visibility="gone"
-        android:elevation="10dp"
-        app:layout_constraintTop_toTopOf="@id/contenedorVideo"
-        app:layout_constraintBottom_toBottomOf="@id/contenedorVideo"
-        app:layout_constraintStart_toStartOf="@id/contenedorVideo"
-        app:layout_constraintEnd_toEndOf="@id/contenedorVideo">
-
-        <View
-            android:id="@+id/zonaIzquierda"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground" />
-
-
-
-        <View
-            android:id="@+id/zonaCentro"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground" />
-
-        <View
-            android:id="@+id/zonaDerecha"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground" />
-
-
-    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -4,6 +4,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -35,6 +38,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.SeekParameters;
 import androidx.media3.ui.PlayerView;
 
 
@@ -67,6 +71,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean isUserHolding = false;
     private final android.os.Handler handlerProgreso = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable runnableProgreso;
+    private final android.os.Handler handlerUI = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable runnableOcultarUI = () -> {
+        if (!isUserHolding) {
+            if (imgFeedback != null) imgFeedback.setVisibility(View.GONE);
+            if (layoutProgreso != null) layoutProgreso.setVisibility(View.GONE);
+        }
+    };
 
     // NUEVAS VARIABLES:
 
@@ -86,9 +97,28 @@ public class MainActivity extends AppCompatActivity {
     private String configDefaultFolder = "Videos Musicales";
     private boolean configTitleTop = true;
     private int configSeekSeconds = 10;
+    
+    private AudioManager audioManager;
+    private AudioFocusRequest audioFocusRequest;
+    private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = focusChange -> {
+        if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+            if (exoPlayer != null) exoPlayer.pause();
+        } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+            if (exoPlayer != null) {
+                exoPlayer.setVolume(1.0f);
+                exoPlayer.play();
+            }
+        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+            if (exoPlayer != null) exoPlayer.pause();
+        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+            if (exoPlayer != null) exoPlayer.setVolume(0.2f);
+        }
+    };
+
     private ImageButton btnConfiguracion;
 
 
+    @androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Mantener la pantalla encendida siempre que la app esté en primer plano
@@ -107,6 +137,8 @@ public class MainActivity extends AppCompatActivity {
         configDefaultFolder = prefs.getString("default_folder", "Videos Musicales");
         configTitleTop = prefs.getBoolean("title_top", true);
         configSeekSeconds = prefs.getInt("seek_seconds", 10);
+
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         btnConfiguracion.setOnClickListener(v -> mostrarDialogoConfiguracion());
 
@@ -224,19 +256,29 @@ public class MainActivity extends AppCompatActivity {
                 if (fromUser) {
                     exoPlayer.seekTo(progress);
                     txtTiempoActual.setText(formatearTiempo(progress));
+                    
+                    // Actualizar tiempo restante en tiempo real mientras desliza
+                    long duration = exoPlayer.getDuration();
+                    if (duration > 0) {
+                        txtTiempoRestante.setText("-" + formatearTiempo(duration - progress));
+                    }
                 }
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
+                isUserHolding = true;
+                handlerUI.removeCallbacks(runnableOcultarUI);
                 handlerProgreso.removeCallbacks(runnableProgreso);
                 layoutProgreso.setVisibility(View.VISIBLE);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+                isUserHolding = false;
                 iniciarHilosProgreso();
-                layoutProgreso.postDelayed(() -> layoutProgreso.setVisibility(View.GONE), 3000);
+                // Al soltar, programamos el ocultamiento
+                handlerUI.postDelayed(runnableOcultarUI, 3000);
             }
         });
 
@@ -283,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
         // 4. Inicializar ExoPlayer y su Listener Integrado
 
         exoPlayer = new ExoPlayer.Builder(this).build();
+        exoPlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC); // Búsqueda de cuadros fluida
         playerView.setPlayer(exoPlayer);
 
         exoPlayer.addListener(new Player.Listener() {
@@ -317,6 +360,7 @@ public class MainActivity extends AppCompatActivity {
                     reproducirSiguienteCarpetaGlobal();
                 } else if (playbackState == Player.STATE_READY) {
                     iniciarHilosProgreso();
+                    solicitarAudioFocus();
                 }
             }
 
@@ -508,6 +552,17 @@ public class MainActivity extends AppCompatActivity {
 
         // Arrancar la reproducción en el video correcto
         exoPlayer.seekTo(indiceReal, 0);
+        
+        // RECUPERAR POSICION SI ES EL MISMO VIDEO GUARDADO
+        SharedPreferences prefs = getSharedPreferences("resume_prefs", MODE_PRIVATE);
+        String lastPath = prefs.getString("last_video_path", "");
+        if (lastPath.equals(videoInicial.getAbsolutePath())) {
+            long lastPos = prefs.getLong("last_video_pos", 0);
+            if (lastPos > 0 && lastPos < 5000000) { // Evitar errores si el video es muy corto o corrupto
+                 exoPlayer.seekTo(indiceReal, lastPos);
+            }
+        }
+
         exoPlayer.prepare();
         exoPlayer.play();
 
@@ -701,16 +756,11 @@ public class MainActivity extends AppCompatActivity {
         layoutProgreso.setVisibility(View.VISIBLE);
 
         // Cancelar cualquier ocultamiento programado previo
-        imgFeedback.removeCallbacks(null);
-        layoutProgreso.removeCallbacks(null);
+        handlerUI.removeCallbacks(runnableOcultarUI);
 
         // SOLO programar el ocultamiento si el usuario NO está presionando la pantalla
         if (!isUserHolding) {
-            Runnable ocultar = () -> {
-                imgFeedback.setVisibility(View.GONE);
-                layoutProgreso.setVisibility(View.GONE);
-            };
-            imgFeedback.postDelayed(ocultar, 3000);
+            handlerUI.postDelayed(runnableOcultarUI, 3000);
         }
     }
 
@@ -729,6 +779,22 @@ public class MainActivity extends AppCompatActivity {
                         seekBarVideo.setProgress((int) currentPos);
                         txtTiempoActual.setText(formatearTiempo(currentPos));
                         txtTiempoRestante.setText("-" + formatearTiempo(duration - currentPos));
+                        
+                        // GUARDAR POSICION PARA RESUME (Cada 5 segundos para no saturar memoria)
+                        if (currentPos % 5000 < 1000) {
+                            int index = exoPlayer.getCurrentMediaItemIndex();
+                            if (videosEnReproduccionActual != null && !videosEnReproduccionActual.isEmpty()) {
+                                // Ajustar indice por los dummies
+                                int realIndex = index - (tieneAnteriorCarpetaGlobal() ? 1 : 0);
+                                if (realIndex >= 0 && realIndex < videosEnReproduccionActual.size()) {
+                                    File currentFile = videosEnReproduccionActual.get(realIndex);
+                                    SharedPreferences.Editor editor = getSharedPreferences("resume_prefs", MODE_PRIVATE).edit();
+                                    editor.putString("last_video_path", currentFile.getAbsolutePath());
+                                    editor.putLong("last_video_pos", currentPos);
+                                    editor.apply();
+                                }
+                            }
+                        }
                     }
                 }
                 handlerProgreso.postDelayed(this, 1000);
@@ -947,6 +1013,23 @@ public class MainActivity extends AppCompatActivity {
         // Evita que la UI se rompa al rotar, manteniendo el modo inmersivo si el video está activo
         if (contenedorVideo.getVisibility() == View.VISIBLE) {
             ocultarBarrasSistema();
+        }
+    }
+
+    private void solicitarAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AudioAttributes playbackAttributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+                    .build();
+            audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(playbackAttributes)
+                    .setAcceptsDelayedFocusGain(true)
+                    .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                    .build();
+            audioManager.requestAudioFocus(audioFocusRequest);
+        } else {
+            audioManager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
         }
     }
 
