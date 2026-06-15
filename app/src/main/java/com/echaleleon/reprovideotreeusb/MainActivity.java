@@ -127,12 +127,12 @@ public class MainActivity extends AppCompatActivity {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true;
                 pressStartTime = System.currentTimeMillis();
-                mostrarFeedback(0);
+                mostrarFeedback(0, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                 
                 handlerSeek.postDelayed(() -> {
                     if (isUserHolding) {
                         iniciarSeekLoop(-configSeekSeconds * 1000);
-                        mostrarFeedback(android.R.drawable.ic_media_rew);
+                        mostrarFeedback(android.R.drawable.ic_media_rew, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                     }
                 }, 3000);
                 return true;
@@ -141,9 +141,9 @@ public class MainActivity extends AppCompatActivity {
                 handlerSeek.removeCallbacksAndMessages(null);
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     irAlVideoAnterior();
-                    mostrarFeedback(android.R.drawable.ic_media_previous);
+                    mostrarFeedback(android.R.drawable.ic_media_previous, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                 } else {
-                    mostrarFeedback(0); 
+                    mostrarFeedback(0, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL); 
                 }
                 return true;
             }
@@ -155,20 +155,20 @@ public class MainActivity extends AppCompatActivity {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true;
                 pressStartTime = System.currentTimeMillis();
-                mostrarFeedback(0);
+                mostrarFeedback(0, android.view.Gravity.CENTER);
                 return true;
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 isUserHolding = false;
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     if (exoPlayer.isPlaying()) {
                         exoPlayer.pause();
-                        mostrarFeedback(android.R.drawable.ic_media_pause);
+                        mostrarFeedback(android.R.drawable.ic_media_pause, android.view.Gravity.CENTER);
                     } else {
                         exoPlayer.play();
-                        mostrarFeedback(android.R.drawable.ic_media_play);
+                        mostrarFeedback(android.R.drawable.ic_media_play, android.view.Gravity.CENTER);
                     }
                 } else {
-                    mostrarFeedback(0);
+                    mostrarFeedback(0, android.view.Gravity.CENTER);
                 }
                 return true;
             }
@@ -180,12 +180,12 @@ public class MainActivity extends AppCompatActivity {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true;
                 pressStartTime = System.currentTimeMillis();
-                mostrarFeedback(0);
+                mostrarFeedback(0, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
 
                 handlerSeek.postDelayed(() -> {
                     if (isUserHolding) {
                         iniciarSeekLoop(configSeekSeconds * 1000);
-                        mostrarFeedback(android.R.drawable.ic_media_ff);
+                        mostrarFeedback(android.R.drawable.ic_media_ff, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
                     }
                 }, 3000);
                 return true;
@@ -194,9 +194,9 @@ public class MainActivity extends AppCompatActivity {
                 handlerSeek.removeCallbacksAndMessages(null);
                 if (System.currentTimeMillis() - pressStartTime < 3000) {
                     irAlSiguienteVideo();
-                    mostrarFeedback(android.R.drawable.ic_media_next);
+                    mostrarFeedback(android.R.drawable.ic_media_next, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
                 } else {
-                    mostrarFeedback(0);
+                    mostrarFeedback(0, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
                 }
                 return true;
             }
@@ -287,7 +287,7 @@ public class MainActivity extends AppCompatActivity {
                             // 3. Decodificar la URI para quitar los %20 y obtener el nombre limpio
                             String nombreArchivo = Uri.decode(new File(uri).getName());
                             mostrarNombreVideo(nombreArchivo);
-                            mostrarFeedback(0); // Para mostrar la barra de progreso al cambiar
+                            mostrarFeedback(0, android.view.Gravity.CENTER); // Para mostrar la barra de progreso al cambiar
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -438,7 +438,7 @@ public class MainActivity extends AppCompatActivity {
         contenedorVideo.setVisibility(View.VISIBLE); // <-- ¡Cambio aquí!
         capaZonasToque.setVisibility(View.VISIBLE);
         ocultarBarrasSistema();
-        mostrarFeedback(0); // Mostrar barra de progreso al iniciar
+        mostrarFeedback(0, android.view.Gravity.CENTER); // Mostrar barra de progreso al iniciar
 
         exoPlayer.stop();
         exoPlayer.clearMediaItems();
@@ -673,9 +673,14 @@ public class MainActivity extends AppCompatActivity {
         txtNombreVideo.postDelayed(() -> txtNombreVideo.setVisibility(View.GONE), 3000);
     }
 
-    private void mostrarFeedback(int resId) {
+    private void mostrarFeedback(int resId, int gravity) {
         if (resId != 0) {
             imgFeedback.setImageResource(resId);
+            
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) imgFeedback.getLayoutParams();
+            lp.gravity = gravity;
+            imgFeedback.setLayoutParams(lp);
+            
             imgFeedback.setVisibility(View.VISIBLE);
         }
         layoutProgreso.setVisibility(View.VISIBLE);
@@ -890,10 +895,10 @@ public class MainActivity extends AppCompatActivity {
                     if (exoPlayer != null) {
                         if (exoPlayer.isPlaying()) {
                             exoPlayer.pause();
-                            mostrarFeedback(android.R.drawable.ic_media_pause);
+                            mostrarFeedback(android.R.drawable.ic_media_pause, android.view.Gravity.CENTER);
                         } else {
                             exoPlayer.play();
-                            mostrarFeedback(android.R.drawable.ic_media_play);
+                            mostrarFeedback(android.R.drawable.ic_media_play, android.view.Gravity.CENTER);
                         }
                     }
                     return true;
@@ -901,31 +906,31 @@ public class MainActivity extends AppCompatActivity {
                 case KeyEvent.KEYCODE_MEDIA_PLAY:
                     if (exoPlayer != null) {
                         exoPlayer.play();
-                        mostrarFeedback(android.R.drawable.ic_media_play);
+                        mostrarFeedback(android.R.drawable.ic_media_play, android.view.Gravity.CENTER);
                     }
                     return true;
 
                 case KeyEvent.KEYCODE_MEDIA_PAUSE:
                     if (exoPlayer != null) {
                         exoPlayer.pause();
-                        mostrarFeedback(android.R.drawable.ic_media_pause);
+                        mostrarFeedback(android.R.drawable.ic_media_pause, android.view.Gravity.CENTER);
                     }
                     return true;
 
                 case KeyEvent.KEYCODE_MEDIA_NEXT:
                     irAlSiguienteVideo();
-                    mostrarFeedback(android.R.drawable.ic_media_next);
+                    mostrarFeedback(android.R.drawable.ic_media_next, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
                     return true;
 
                 case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
                     irAlVideoAnterior();
-                    mostrarFeedback(android.R.drawable.ic_media_previous);
+                    mostrarFeedback(android.R.drawable.ic_media_previous, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                     return true;
                     
                 case KeyEvent.KEYCODE_MEDIA_STOP:
                     if (exoPlayer != null) {
                         exoPlayer.stop();
-                        mostrarFeedback(android.R.drawable.ic_media_pause);
+                        mostrarFeedback(android.R.drawable.ic_media_pause, android.view.Gravity.CENTER);
                     }
                     return true;
             }

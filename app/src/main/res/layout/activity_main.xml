@@ -131,6 +131,8 @@
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:layout_gravity="center"
+            android:layout_marginStart="60dp"
+            android:layout_marginEnd="60dp"
             android:background="@drawable/circle_background"
             android:padding="15dp"
             app:tint="#FFFFFF"
