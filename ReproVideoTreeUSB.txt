@@ -1,0 +1,39 @@
+# 🎬 ReproVideoTreeUSB
+**ReproVideoTreeUSB** es un reproductor de video de alto rendimiento optimizado para radios Android de automóviles (unidades chinas) y dispositivos móviles. Está diseñado específicamente para disfrutar de colecciones de **videos musicales** con una interfaz minimalista, fluida y sin distracciones.
+
+## 🚀 Funcionalidades Principales
+
+### 📁 Gestión de Archivos y Almacenamiento
+*   **Escaneo Inteligente de USB:** Detecta automáticamente unidades externas y pendrives al conectarlos.
+*   **Navegación por Carpetas:** Explorador de archivos en cascada con soporte para una carpeta inicial personalizada (ej. "Videos Musicales").
+*   **Reproducción Continua Global:** Al finalizar todos los videos de una carpeta, salta automáticamente al primer video de la siguiente carpeta.
+
+### 🎥 Experiencia de Reproducción
+*   **Modo Inmersivo:** Pantalla completa real que oculta automáticamente las barras del sistema (status y navegación).
+*   **Resume Playback:** Recuerda automáticamente el último video reproducido y el segundo exacto donde te quedaste, incluso tras cerrar la app.
+*   **Búsqueda Fluida:** Al deslizar la barra de tiempo, el video se previsualiza cuadro por cuadro en tiempo real.
+*   **Always On:** Mantiene la pantalla encendida permanentemente mientras el video está activo.
+*   **Bloqueo Landscape:** Orientación horizontal fija, ideal para pantallas de vehículos.
+
+### ⚙️ Controles Inteligentes
+*   **Zonas Táctiles (3 Sectores):**
+    *   **Izquierda:** Toque corto para video anterior / Mantenido para rebobinar.
+    *   **Centro:** Toque corto para Play-Pause / Mantenido (3s) para volver al explorador de archivos.
+    *   **Derecha:** Toque corto para siguiente video / Mantenido para adelantar.
+*   **Feedback Visual:** Iconos flotantes en pantalla que indican la acción realizada en tiempo real.
+*   **Soporte Bluetooth y Volante:** Compatible con mandos al volante y controles Bluetooth (Play, Pause, Next, Prev, Stop).
+
+### 🔊 Gestión de Audio y GPS
+*   **Audio Focus:** Baja el volumen de la música automáticamente cuando el GPS da una instrucción y lo restaura al finalizar.
+*   **Auto-Pausa:** Detiene el video ante llamadas entrantes o pérdida del foco de audio del sistema.
+
+### 🛠️ Configuración Avanzada (Material Design)
+Panel de ajustes profesional para personalizar:
+*   **Carpeta Inicial:** Define qué carpeta debe buscar la app al iniciar.
+*   **Apariencia de Lista:** Ajuste de altura de los items y tamaño de fuente para mejorar la legibilidad en pantallas lejanas.
+*   **Posición del Título:** Elige si el nombre de la canción aparece arriba o abajo.
+*   **Buscador Personalizado:** Configura cuántos segundos saltar al usar el adelanto/retroceso.
+
+---
+**Optimizada para:** Android 5.0 hasta Android 14.
+**Formatos soportados:** MP4, MKV, AVI.
