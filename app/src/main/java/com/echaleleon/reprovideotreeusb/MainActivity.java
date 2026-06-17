@@ -27,10 +27,12 @@ import android.content.SharedPreferences;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import androidx.appcompat.app.AlertDialog;
 
 
@@ -68,7 +70,14 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtTiempoActual;
     private TextView txtTiempoRestante;
     private ImageView imgFeedback;
+    private ProgressBar pbVolumen;
+    private ProgressBar pbBrillo;
     private boolean isUserHolding = false;
+    private float startY;
+    private int initialVolume;
+    private float initialBrightness;
+    private boolean isSwipingVolume = false;
+    private boolean isSwipingBrightness = false;
     private final android.os.Handler handlerProgreso = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable runnableProgreso;
     private final android.os.Handler handlerUI = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -97,7 +106,12 @@ public class MainActivity extends AppCompatActivity {
     private String configDefaultFolder = "Videos Musicales";
     private boolean configTitleTop = true;
     private int configSeekSeconds = 10;
+    private boolean configNightMode = true;
+    private boolean configPilotMode = false;
     
+    private ImageButton btnInicio;
+    private long tiempoPrimerClickAtras = 0;
+
     private AudioManager audioManager;
     private AudioFocusRequest audioFocusRequest;
     private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = focusChange -> {
@@ -130,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
         listViewArchivos = findViewById(R.id.listViewArchivos);
         contenedorExplorador = findViewById(R.id.contenedorExplorador);
         btnConfiguracion = findViewById(R.id.btnConfiguracion);
+        btnInicio = findViewById(R.id.btnInicio);
 
         SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
         configItemHeight = prefs.getInt("item_height", 100);
@@ -137,10 +152,18 @@ public class MainActivity extends AppCompatActivity {
         configDefaultFolder = prefs.getString("default_folder", "Videos Musicales");
         configTitleTop = prefs.getBoolean("title_top", true);
         configSeekSeconds = prefs.getInt("seek_seconds", 10);
+        configNightMode = prefs.getBoolean("night_mode", true);
+        configPilotMode = prefs.getBoolean("pilot_mode", false);
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        aplicarTemaFondo();
 
         btnConfiguracion.setOnClickListener(v -> mostrarDialogoConfiguracion());
+        btnInicio.setOnClickListener(v -> {
+            pilaDeRutas.clear();
+            escanearYRefrescar();
+            Toast.makeText(this, "Volviendo a carpeta inicial", Toast.LENGTH_SHORT).show();
+        });
 
         // VINCULAR LAS NUEVAS VISTAS DEL VIDEO
         contenedorVideo = findViewById(R.id.contenedorVideo); // <-- ¡OBLIGATORIO!
@@ -152,6 +175,8 @@ public class MainActivity extends AppCompatActivity {
         txtTiempoActual = findViewById(R.id.txtTiempoActual);
         txtTiempoRestante = findViewById(R.id.txtTiempoRestante);
         imgFeedback = findViewById(R.id.imgFeedback);
+        pbVolumen = findViewById(R.id.pbVolumen);
+        pbBrillo = findViewById(R.id.pbBrillo);
 
         capaZonasToque = findViewById(R.id.capaZonasToque);
         zonaIzquierda = findViewById(R.id.zonaIzquierda);
@@ -159,29 +184,70 @@ public class MainActivity extends AppCompatActivity {
         zonaDerecha = findViewById(R.id.zonaDerecha);
 
         // 2. Configurar Clics de las zonas táctiles sobre el video
-        // ZONA IZQUIERDA: Video anterior O rebobinar si se mantiene presionado
+        // ZONA IZQUIERDA: Video anterior O rebobinar si se mantiene presionado O VOLUMEN (Deslizar)
         zonaIzquierda.setOnTouchListener((v, event) -> {
+            int maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true;
+                isSwipingVolume = false;
+                startY = event.getY();
+                initialVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                
                 pressStartTime = System.currentTimeMillis();
                 mostrarFeedback(0, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                 
                 handlerSeek.postDelayed(() -> {
-                    if (isUserHolding) {
-                        iniciarSeekLoop(-configSeekSeconds * 1000);
-                        mostrarFeedback(android.R.drawable.ic_media_rew, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+                    if (isUserHolding && !isSwipingVolume) {
+                        int skipDirection = configPilotMode ? 1 : -1;
+                        int feedbackIcon = configPilotMode ? android.R.drawable.ic_media_ff : android.R.drawable.ic_media_rew;
+                        
+                        iniciarSeekLoop(skipDirection * configSeekSeconds * 1000);
+                        mostrarFeedback(feedbackIcon, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                     }
                 }, 3000);
                 return true;
+
+            } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                float deltaY = startY - event.getY();
+                if (Math.abs(deltaY) > 30) {
+                    isSwipingVolume = true;
+                    handlerSeek.removeCallbacksAndMessages(null);
+
+                    int volumeChange = (int) (deltaY / (v.getHeight() / maxVol));
+                    int newVol = initialVolume + volumeChange;
+                    if (newVol < 0) newVol = 0;
+                    if (newVol > maxVol) newVol = maxVol;
+
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0);
+
+                    pbVolumen.setVisibility(View.VISIBLE);
+                    pbVolumen.setMax(maxVol);
+                    pbVolumen.setProgress(newVol);
+                    
+                    pbVolumen.removeCallbacks(null);
+                    pbVolumen.postDelayed(() -> pbVolumen.setVisibility(View.GONE), 2000);
+                }
+                return true;
+
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 isUserHolding = false;
                 handlerSeek.removeCallbacksAndMessages(null);
-                if (System.currentTimeMillis() - pressStartTime < 3000) {
-                    irAlVideoAnterior();
-                    mostrarFeedback(android.R.drawable.ic_media_previous, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
-                } else {
-                    mostrarFeedback(0, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL); 
+                
+                if (!isSwipingVolume) {
+                    if (System.currentTimeMillis() - pressStartTime < 3000) {
+                        if (configPilotMode) {
+                            irAlSiguienteVideo();
+                            mostrarFeedback(android.R.drawable.ic_media_next, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+                        } else {
+                            irAlVideoAnterior();
+                            mostrarFeedback(android.R.drawable.ic_media_previous, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+                        }
+                    } else {
+                        mostrarFeedback(0, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL); 
+                    }
                 }
+                isSwipingVolume = false;
                 return true;
             }
             return true;
@@ -222,29 +288,73 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
-        // ZONA DERECHA: Siguiente video O adelantar si se mantiene presionado
+        // ZONA DERECHA: Siguiente video O adelantar si se mantiene presionado O BRILLO (Deslizar)
         zonaDerecha.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true;
+                isSwipingBrightness = false;
+                startY = event.getY();
+                
+                float currentBrightness = getWindow().getAttributes().screenBrightness;
+                if (currentBrightness < 0) currentBrightness = 0.5f;
+                initialBrightness = currentBrightness;
+
                 pressStartTime = System.currentTimeMillis();
                 mostrarFeedback(0, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
 
                 handlerSeek.postDelayed(() -> {
-                    if (isUserHolding) {
-                        iniciarSeekLoop(configSeekSeconds * 1000);
-                        mostrarFeedback(android.R.drawable.ic_media_ff, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                    if (isUserHolding && !isSwipingBrightness) {
+                        int skipDirection = configPilotMode ? -1 : 1;
+                        int feedbackIcon = configPilotMode ? android.R.drawable.ic_media_rew : android.R.drawable.ic_media_ff;
+                        
+                        iniciarSeekLoop(skipDirection * configSeekSeconds * 1000);
+                        mostrarFeedback(feedbackIcon, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
                     }
                 }, 3000);
                 return true;
+
+            } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                float deltaY = startY - event.getY();
+                if (Math.abs(deltaY) > 30) {
+                    isSwipingBrightness = true;
+                    handlerSeek.removeCallbacksAndMessages(null);
+
+                    float brightnessChange = deltaY / v.getHeight();
+                    float newBrightness = initialBrightness + brightnessChange;
+                    if (newBrightness < 0.01f) newBrightness = 0.01f;
+                    if (newBrightness > 1.0f) newBrightness = 1.0f;
+
+                    android.view.WindowManager.LayoutParams lp = getWindow().getAttributes();
+                    lp.screenBrightness = newBrightness;
+                    getWindow().setAttributes(lp);
+
+                    pbBrillo.setVisibility(View.VISIBLE);
+                    pbBrillo.setMax(100);
+                    pbBrillo.setProgress((int) (newBrightness * 100));
+                    
+                    pbBrillo.removeCallbacks(null);
+                    pbBrillo.postDelayed(() -> pbBrillo.setVisibility(View.GONE), 2000);
+                }
+                return true;
+
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 isUserHolding = false;
                 handlerSeek.removeCallbacksAndMessages(null);
-                if (System.currentTimeMillis() - pressStartTime < 3000) {
-                    irAlSiguienteVideo();
-                    mostrarFeedback(android.R.drawable.ic_media_next, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
-                } else {
-                    mostrarFeedback(0, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                
+                if (!isSwipingBrightness) {
+                    if (System.currentTimeMillis() - pressStartTime < 3000) {
+                        if (configPilotMode) {
+                            irAlVideoAnterior();
+                            mostrarFeedback(android.R.drawable.ic_media_previous, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                        } else {
+                            irAlSiguienteVideo();
+                            mostrarFeedback(android.R.drawable.ic_media_next, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                        }
+                    } else {
+                        mostrarFeedback(0, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                    }
                 }
+                isSwipingBrightness = false;
                 return true;
             }
             return true;
@@ -424,6 +534,13 @@ public class MainActivity extends AppCompatActivity {
 
         carpetaReproduciendoActualmente = nuevaCarpeta;
         txtRutaActual.setText("Ruta: " + nuevaCarpeta.getAbsolutePath());
+        
+        // Aplicar colores de tema según modo actual
+        int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
+        txtRutaActual.setTextColor(textColor);
+        
+        if (btnConfiguracion != null) btnConfiguracion.setColorFilter(textColor);
+        if (btnInicio != null) btnInicio.setColorFilter(textColor);
 
         // Asegurar que el explorador sea visible al navegar
         listViewArchivos.setVisibility(View.VISIBLE);
@@ -465,7 +582,8 @@ public class MainActivity extends AppCompatActivity {
                 android.view.View view = super.getView(position, convertView, parent);
 
                 TextView text = view.findViewById(R.id.txtNombreCarpeta);
-                text.setTextColor(android.graphics.Color.WHITE);
+                int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
+                text.setTextColor(textColor);
 
                 // Aplicar configuraciones personalizadas
                 text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, configTextSize);
@@ -625,7 +743,13 @@ public class MainActivity extends AppCompatActivity {
             File carpetaPadre = pilaDeRutas.peek(); // Ver la carpeta anterior
             navegarACarpeta(carpetaPadre); // Redibujar lista
         } else {
-            super.onBackPressed(); // Si ya está en la raíz de la SD/USB, cierra la app de forma nativa
+            // CASO C: Prevenir salida accidental
+            if (tiempoPrimerClickAtras + 2000 > System.currentTimeMillis()) {
+                super.onBackPressed();
+            } else {
+                Toast.makeText(this, "Presiona atrás de nuevo para salir", Toast.LENGTH_SHORT).show();
+                tiempoPrimerClickAtras = System.currentTimeMillis();
+            }
         }
     }
 
@@ -722,6 +846,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void mostrarNombreVideo(String nombre) {
+        if (txtNombreVideo == null) return;
+        
         txtNombreVideo.setText(nombre);
         
         // Ajustar posición según configuración
@@ -732,12 +858,15 @@ public class MainActivity extends AppCompatActivity {
             params.bottomMargin = 0;
         } else {
             params.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL;
-            params.bottomMargin = (int) (100 * getResources().getDisplayMetrics().density); // Un poco arriba de la barra de progreso
+            params.bottomMargin = (int) (120 * getResources().getDisplayMetrics().density); // Un poco más arriba de la barra
             params.topMargin = 0;
         }
         txtNombreVideo.setLayoutParams(params);
         
         txtNombreVideo.setVisibility(View.VISIBLE);
+
+        // Cancelar ocultamientos previos para evitar parpadeos
+        txtNombreVideo.removeCallbacks(null);
 
         // Oculta el nombre automáticamente después de 3 segundos
         txtNombreVideo.postDelayed(() -> txtNombreVideo.setVisibility(View.GONE), 3000);
@@ -855,52 +984,173 @@ public class MainActivity extends AppCompatActivity {
     private void mostrarDialogoConfiguracion() {
         View view = getLayoutInflater().inflate(R.layout.dialog_settings, null);
         
-        TextInputEditText editHeight = view.findViewById(R.id.editItemHeight);
-        TextInputEditText editTextSize = view.findViewById(R.id.editTextSize);
-        TextInputEditText editFolder = view.findViewById(R.id.editDefaultFolder);
-        TextInputEditText editSeek = view.findViewById(R.id.editSeekSeconds);
-        SwitchMaterial switchTitle = view.findViewById(R.id.switchTitlePosition);
+        // Guardar valores originales para restaurar si cancela
+        final int oldHeight = configItemHeight;
+        final int oldTextSize = configTextSize;
+        final boolean oldNightMode = configNightMode;
+        final boolean oldTitleTop = configTitleTop;
+        final boolean oldPilotMode = configPilotMode;
 
-        // Cargar valores actuales
-        editHeight.setText(String.valueOf(configItemHeight));
-        editTextSize.setText(String.valueOf(configTextSize));
+        TextInputEditText editFolder = view.findViewById(R.id.editDefaultFolder);
+        SeekBar seekBarSkip = view.findViewById(R.id.seekBarSkipTime);
+        TextView txtSkip = view.findViewById(R.id.txtValueSeek);
+        SwitchMaterial switchTitle = view.findViewById(R.id.switchTitlePosition);
+        SeekBar seekBarText = view.findViewById(R.id.seekBarTextSize);
+        SeekBar seekBarHeight = view.findViewById(R.id.seekBarItemHeight);
+        
+        SwitchMaterial switchNight = view.findViewById(R.id.switchNightMode);
+        SwitchMaterial switchPilot = view.findViewById(R.id.switchPilotMode);
+
         editFolder.setText(configDefaultFolder);
-        editSeek.setText(String.valueOf(configSeekSeconds));
+        seekBarSkip.setProgress(configSeekSeconds);
+        txtSkip.setText(configSeekSeconds + " segundos");
         switchTitle.setChecked(configTitleTop);
+        seekBarText.setProgress(configTextSize);
+        seekBarHeight.setProgress(configItemHeight);
+        switchNight.setChecked(configNightMode);
+        switchPilot.setChecked(configPilotMode);
+
+        seekBarSkip.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (progress < 1) progress = 1;
+                txtSkip.setText(progress + " segundos");
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        seekBarText.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                configTextSize = progress;
+                if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        seekBarHeight.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                configItemHeight = progress;
+                if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        switchNight.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            configNightMode = isChecked;
+            aplicarTemaFondo();
+            actualizarColoresDialogo(view);
+            if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+        });
+
+        switchTitle.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            configTitleTop = isChecked;
+            // Mostrar previsualización del título si el video está visible
+            if (contenedorVideo.getVisibility() == View.VISIBLE) {
+                mostrarNombreVideo("Ejemplo de Posición");
+            }
+        });
+
+        switchPilot.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            configPilotMode = isChecked;
+        });
+
+        actualizarColoresDialogo(view);
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Configuración Avanzada")
-                .setIcon(android.R.drawable.ic_menu_preferences)
+                .setTitle("Configuración")
                 .setView(view)
-                .setPositiveButton("Guardar Cambios", (dialog, which) -> {
-                    String h = editHeight.getText().toString();
-                    String t = editTextSize.getText().toString();
+                .setPositiveButton("Guardar", (dialog, which) -> {
                     String f = editFolder.getText().toString();
-                    String s = editSeek.getText().toString();
-
-                    if (!h.isEmpty()) configItemHeight = Integer.parseInt(h);
-                    if (!t.isEmpty()) configTextSize = Integer.parseInt(t);
-                    if (!f.isEmpty()) configDefaultFolder = f;
-                    if (!s.isEmpty()) configSeekSeconds = Integer.parseInt(s);
-                    configTitleTop = switchTitle.isChecked();
-
+                    configDefaultFolder = f.isEmpty() ? "Videos Musicales" : f;
+                    configSeekSeconds = seekBarSkip.getProgress();
+                    
                     SharedPreferences.Editor editor = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
                     editor.putInt("item_height", configItemHeight);
                     editor.putInt("text_size", configTextSize);
                     editor.putString("default_folder", configDefaultFolder);
                     editor.putInt("seek_seconds", configSeekSeconds);
                     editor.putBoolean("title_top", configTitleTop);
+                    editor.putBoolean("night_mode", configNightMode);
+                    editor.putBoolean("pilot_mode", configPilotMode);
                     editor.apply();
 
-                    if (!pilaDeRutas.isEmpty()) {
-                        navegarACarpeta(pilaDeRutas.peek());
-                    }
-                    Toast.makeText(this, "Configuración guardada", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Ajustes guardados", Toast.LENGTH_SHORT).show();
                 })
-                .setNegativeButton("Cancelar", null)
+                .setNegativeButton("Cancelar", (dialog, which) -> {
+                    // Restaurar valores originales
+                    configItemHeight = oldHeight;
+                    configTextSize = oldTextSize;
+                    configNightMode = oldNightMode;
+                    configTitleTop = oldTitleTop;
+                    configPilotMode = oldPilotMode;
+                    
+                    aplicarTemaFondo();
+                    if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+                    if (contenedorVideo.getVisibility() == View.VISIBLE) {
+                        mostrarNombreVideo(txtNombreVideo.getText().toString());
+                    }
+                })
                 .show();
     }
 
+    private void aplicarTemaFondo() {
+        View root = findViewById(android.R.id.content);
+        int color = configNightMode ? android.graphics.Color.parseColor("#121212") : android.graphics.Color.parseColor("#F5F5F5");
+        root.setBackgroundColor(color);
+        
+        // El contenedor del explorador también necesita actualizarse
+        if (contenedorExplorador != null) {
+            contenedorExplorador.setBackgroundColor(color);
+        }
+    }
+
+    private void actualizarColoresDialogo(View dialogView) {
+        if (dialogView == null) return;
+        
+        int bgColor = configNightMode ? android.graphics.Color.parseColor("#1A1A1A") : android.graphics.Color.WHITE;
+        int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
+        int subTitleColor = configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#666666");
+
+        dialogView.setBackgroundColor(bgColor);
+        actualizarRecursivo(dialogView, textColor, subTitleColor);
+    }
+
+    private void actualizarRecursivo(View view, int textColor, int subColor) {
+        // Soporte especial para TextInputLayout (bordes y etiquetas)
+        if (view instanceof TextInputLayout) {
+            TextInputLayout til = (TextInputLayout) view;
+            til.setDefaultHintTextColor(android.content.res.ColorStateList.valueOf(subColor));
+            til.setHintTextColor(android.content.res.ColorStateList.valueOf(textColor));
+            til.setBoxStrokeColor(textColor);
+        }
+
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                actualizarRecursivo(group.getChildAt(i), textColor, subColor);
+            }
+        }
+        
+        if (view instanceof TextView) {
+            TextView tv = (TextView) view;
+            String text = tv.getText().toString();
+            if (text.equals("GENERAL") || text.equals("APARIENCIA")) {
+                tv.setTextColor(subColor);
+            } else {
+                tv.setTextColor(textColor);
+            }
+            
+            if (view instanceof EditText) {
+                ((EditText) view).setHintTextColor(subColor);
+            }
+        } else if (view instanceof android.widget.SeekBar) {
+            android.widget.SeekBar sb = (android.widget.SeekBar) view;
+            sb.getThumb().setTint(textColor);
+            sb.getProgressDrawable().setTint(textColor);
+        }
+    }
 
     private void irAlVideoAnterior() {
         if (exoPlayer.hasPreviousMediaItem() && exoPlayer.getCurrentMediaItemIndex() > 0) {
@@ -1034,51 +1284,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void escanearYRefrescar() {
-        // 1. Buscamos en /storage/ (donde Android monta los USB/SD externos)
+        pilaDeRutas.clear();
+        
+        // 1. Base: Memoria interna del teléfono (Permite volver a ella al dar atrás)
+        File interna = Environment.getExternalStorageDirectory();
+        pilaDeRutas.push(interna);
+
+        // 2. Intentar localizar USB en /storage/
         File storage = new File("/storage/");
         if (storage.exists() && storage.listFiles() != null) {
             for (File f : storage.listFiles()) {
-                // El emulador usa un ID como '0000-0000', los radios suelen usar 'sda1' o 'usb'
-                // Filtramos la memoria interna ('emulated') y la propia carpeta 'self'
+                // Filtramos la memoria interna y carpetas del sistema
                 if (f.isDirectory() && !f.getName().equals("emulated") && !f.getName().equals("self")) {
                     
-                    // INTENTO DE ENTRAR A LA CARPETA CONFIGURADA
+                    // Si encontramos un USB, revisamos si tiene la carpeta favorita
                     if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
                         File carpetaFav = new File(f, configDefaultFolder);
                         if (carpetaFav.exists() && carpetaFav.isDirectory()) {
-                            navegarACarpeta(carpetaFav);
+                            pilaDeRutas.push(f); // Añadir raíz del USB al historial para poder volver
+                            navegarACarpeta(carpetaFav); // Entrar directamente a la favorita
                             return;
                         }
                     }
 
-                    navegarACarpeta(f);
-                    return; // Si encontramos algo en /storage/ que no es la memoria interna, entramos ahí.
-                }
-            }
-        }
-
-        // 2. Si no encontró nada en /storage/, buscamos en /mnt/ (por si acaso)
-        File mnt = new File("/mnt/");
-        if (mnt.exists() && mnt.listFiles() != null) {
-            for (File f : mnt.listFiles()) {
-                if (f.isDirectory() && (f.getName().toLowerCase().contains("usb") || f.getName().toLowerCase().contains("sd"))) {
-                    
-                    if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
-                        File carpetaFav = new File(f, configDefaultFolder);
-                        if (carpetaFav.exists() && carpetaFav.isDirectory()) {
-                            navegarACarpeta(carpetaFav);
-                            return;
-                        }
-                    }
-
+                    // Si no hay favorita, entramos a la raíz del USB
                     navegarACarpeta(f);
                     return;
                 }
             }
         }
 
-        // 3. Último recurso: memoria interna
-        File interna = Environment.getExternalStorageDirectory();
+        // 3. Si no hay USB, buscamos la carpeta favorita en la propia memoria interna
         if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
             File carpetaFav = new File(interna, configDefaultFolder);
             if (carpetaFav.exists() && carpetaFav.isDirectory()) {
@@ -1086,6 +1322,8 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
         }
+        
+        // 4. Si nada de lo anterior, nos quedamos mostrando la memoria interna
         navegarACarpeta(interna);
     }
 

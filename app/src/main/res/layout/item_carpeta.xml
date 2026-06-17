@@ -9,5 +9,4 @@
     android:paddingEnd="30dp"
     android:textSize="32sp"
     android:textStyle="bold"
-    android:textColor="#FFFFFF"
     android:background="?android:attr/selectableItemBackground" />

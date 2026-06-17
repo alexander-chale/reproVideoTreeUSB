@@ -34,6 +34,16 @@
                 android:paddingBottom="8dp"/>
 
             <ImageButton
+                android:id="@+id/btnInicio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_home_custom"
+                android:background="?android:attr/selectableItemBackground"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="Ir a Inicio" />
+
+            <ImageButton
                 android:id="@+id/btnConfiguracion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -170,6 +180,34 @@
             android:visibility="gone"
             android:elevation="15dp"
             android:contentDescription="Feedback" />
+
+        <!-- Barra de Volumen Vertical (Izquierda) -->
+        <ProgressBar
+            android:id="@+id/pbVolumen"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="150dp"
+            android:layout_height="8dp"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginStart="-60dp"
+            android:rotation="-90"
+            android:progressTint="#2196F3"
+            android:background="#44000000"
+            android:visibility="gone"
+            android:elevation="25dp" />
+
+        <!-- Barra de Brillo Vertical (Derecha) -->
+        <ProgressBar
+            android:id="@+id/pbBrillo"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="150dp"
+            android:layout_height="8dp"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="-60dp"
+            android:rotation="-90"
+            android:progressTint="#FFC107"
+            android:background="#44000000"
+            android:visibility="gone"
+            android:elevation="25dp" />
 
     </FrameLayout>
 

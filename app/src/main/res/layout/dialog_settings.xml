@@ -8,15 +8,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="20dp">
 
+        <!-- CATEGORIA GENERAL -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Apariencia de Lista"
-            android:textColor="@color/primary"
-            android:textSize="14sp"
+            android:text="GENERAL"
+            android:textSize="12sp"
             android:textStyle="bold"
+            android:letterSpacing="0.1"
             android:layout_marginBottom="16dp"/>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -24,44 +25,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Altura del item (dp)">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editItemHeight"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:hint="Tamaño de letra (sp)">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editTextSize"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Reproducción"
-            android:textColor="@color/primary"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp"/>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:hint="Carpeta inicial (Nombre)">
+            android:hint="Carpeta inicial (Videos Musicales)"
+            app:hintTextColor="#BB86FC"
+            app:boxStrokeColor="#BB86FC">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editDefaultFolder"
@@ -70,34 +36,114 @@
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:hint="Segundos de salto (Buscador)">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editSeekSeconds"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="number" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Segundos de salto"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/txtValueSeek"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10 segundos"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarSkipTime"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:max="60"
+                android:progress="10"
+                android:progressTint="#BB86FC"
+                android:thumbTint="#BB86FC" />
+        </LinearLayout>
+
+        <!-- CATEGORIA APARIENCIA -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="APARIENCIA"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="8dp"/>
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchNightMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Modo Noche (Oscuro)"
+            android:textSize="16sp"
+            app:useMaterialThemeColors="true"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchPilotMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Modo Piloto"
+            android:textSize="16sp"
+            app:useMaterialThemeColors="true"
+            android:layout_marginBottom="8dp"/>
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switchTitlePosition"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
             android:text="Mostrar título arriba"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            app:useMaterialThemeColors="true"
+            android:layout_marginBottom="16dp"/>
 
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tamaño de letra"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp"/>
+
+        <SeekBar
+            android:id="@+id/seekBarTextSize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Si se desmarca, el título aparecerá abajo."
-            android:textSize="12sp"
-            android:alpha="0.6" />
+            android:max="60"
+            android:progress="32"
+            android:progressTint="#BB86FC"
+            android:thumbTint="#BB86FC"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Altura de los items"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp"/>
+
+        <SeekBar
+            android:id="@+id/seekBarItemHeight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="200"
+            android:progress="100"
+            android:progressTint="#BB86FC"
+            android:thumbTint="#BB86FC"
+            android:layout_marginBottom="8dp"/>
 
     </LinearLayout>
 </ScrollView>
