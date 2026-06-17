@@ -45,6 +45,17 @@
                 android:ellipsize="end" />
 
             <ImageButton
+                android:id="@+id/btnScreenOff"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_screen_off"
+                android:background="?android:attr/selectableItemBackground"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Apagar Pantalla" />
+
+            <ImageButton
                 android:id="@+id/btnInicio"
                 android:layout_width="60dp"
                 android:layout_height="match_parent"
@@ -85,6 +96,77 @@
             app:use_controller="false"
             app:surface_type="texture_view"
             android:background="#000000" />
+
+        <!-- Capa de Pantalla Apagada / Visualizador (Modo Música) -->
+        <RelativeLayout
+            android:id="@+id/capaPantallaApagada"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#000000"
+            android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false">
+
+            <!-- Fondo difuminado o degradado suave (opcional en futuro) -->
+            <ImageView
+                android:id="@+id/imgAlbumArt"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="60dp"
+                android:src="@drawable/ic_home_custom"
+                android:scaleType="centerInside"
+                android:alpha="0.8"
+                android:background="@drawable/circle_background"
+                android:padding="40dp" />
+
+            <TextView
+                android:id="@+id/txtMusicTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/imgAlbumArt"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="20dp"
+                android:text="Nombre de la Canción"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="40dp"
+                android:gravity="center"
+                android:singleLine="true"
+                android:ellipsize="marquee" />
+
+            <!-- Visualizador Dinámico -->
+            <LinearLayout
+                android:id="@+id/layoutVisualizer"
+                android:layout_width="wrap_content"
+                android:layout_height="60dp"
+                android:layout_below="@id/txtMusicTitle"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="30dp"
+                android:orientation="horizontal"
+                android:gravity="bottom">
+                <View android:id="@+id/bar1" android:layout_width="6dp" android:layout_height="20dp" android:background="#BB86FC" android:layout_margin="2dp"/>
+                <View android:id="@+id/bar2" android:layout_width="6dp" android:layout_height="35dp" android:background="#BB86FC" android:layout_margin="2dp"/>
+                <View android:id="@+id/bar3" android:layout_width="6dp" android:layout_height="50dp" android:background="#BB86FC" android:layout_margin="2dp"/>
+                <View android:id="@+id/bar4" android:layout_width="6dp" android:layout_height="35dp" android:background="#BB86FC" android:layout_margin="2dp"/>
+                <View android:id="@+id/bar5" android:layout_width="6dp" android:layout_height="20dp" android:background="#BB86FC" android:layout_margin="2dp"/>
+                <View android:id="@+id/bar6" android:layout_width="6dp" android:layout_height="40dp" android:background="#BB86FC" android:layout_margin="2dp"/>
+                <View android:id="@+id/bar7" android:layout_width="6dp" android:layout_height="25dp" android:background="#BB86FC" android:layout_margin="2dp"/>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginBottom="20dp"
+                android:text="MODO REPRODUCTOR DE AUDIO"
+                android:textColor="#33FFFFFF"
+                android:textSize="10sp"
+                android:letterSpacing="0.2" />
+
+        </RelativeLayout>
 
         <!-- Capa de Zonas de Toque: Ahora dentro del contenedor pero antes de los controles -->
         <LinearLayout

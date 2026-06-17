@@ -20,6 +20,7 @@ import android.view.WindowInsetsController;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.LinearLayout;
@@ -113,6 +114,10 @@ public class MainActivity extends AppCompatActivity {
     private boolean configHideExtension = false;
     
     private ImageButton btnInicio;
+    private ImageButton btnScreenOff;
+    private RelativeLayout capaPantallaApagada;
+    private TextView txtMusicTitle;
+    private boolean isScreenOffMode = false;
     private long tiempoPrimerClickAtras = 0;
 
     private AudioManager audioManager;
@@ -149,6 +154,9 @@ public class MainActivity extends AppCompatActivity {
         layoutBarraInferior = findViewById(R.id.layoutBarraInferior);
         btnConfiguracion = findViewById(R.id.btnConfiguracion);
         btnInicio = findViewById(R.id.btnInicio);
+        btnScreenOff = findViewById(R.id.btnScreenOff);
+        capaPantallaApagada = findViewById(R.id.capaPantallaApagada);
+        txtMusicTitle = findViewById(R.id.txtMusicTitle);
 
         SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
         configItemHeight = prefs.getInt("item_height", 100);
@@ -167,6 +175,18 @@ public class MainActivity extends AppCompatActivity {
         btnInicio.setOnClickListener(v -> {
             escanearYRefrescar();
             Toast.makeText(this, "Volviendo a carpeta inicial", Toast.LENGTH_SHORT).show();
+        });
+
+        btnScreenOff.setOnClickListener(v -> {
+            isScreenOffMode = !isScreenOffMode;
+            capaPantallaApagada.setVisibility(isScreenOffMode ? View.VISIBLE : View.GONE);
+            btnScreenOff.setColorFilter(isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : 
+                (configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK));
+            
+            if (isScreenOffMode) {
+                iniciarAnimacionBarras();
+                Toast.makeText(this, "Modo Audio Activado", Toast.LENGTH_SHORT).show();
+            }
         });
 
         // VINCULAR LAS NUEVAS VISTAS DEL VIDEO
@@ -551,6 +571,42 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void iniciarAnimacionBarras() {
+        if (!isScreenOffMode) return;
+
+        View[] bars = {
+            findViewById(R.id.bar1), findViewById(R.id.bar2),
+            findViewById(R.id.bar3), findViewById(R.id.bar4),
+            findViewById(R.id.bar5), findViewById(R.id.bar6),
+            findViewById(R.id.bar7)
+        };
+
+        android.os.Handler h = new android.os.Handler();
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                if (!isScreenOffMode || contenedorVideo.getVisibility() == View.GONE || !exoPlayer.isPlaying()) {
+                    if (!isScreenOffMode) return;
+                    h.postDelayed(this, 500); // Reintentar lento si está pausado
+                    return;
+                }
+                
+                java.util.Random rnd = new java.util.Random();
+                for (View b : bars) {
+                    if (b != null) {
+                        int height = rnd.nextInt(50) + 10; // altura aleatoria entre 10 y 60 dp
+                        android.view.ViewGroup.LayoutParams lp = b.getLayoutParams();
+                        lp.height = (int) android.util.TypedValue.applyDimension(
+                            android.util.TypedValue.COMPLEX_UNIT_DIP, height, getResources().getDisplayMetrics());
+                        b.setLayoutParams(lp);
+                    }
+                }
+                h.postDelayed(this, 100); // Más rápido para que parezca fluido
+            }
+        };
+        h.post(r);
+    }
+
     private void navegarACarpeta(File nuevaCarpeta) {
         if (nuevaCarpeta == null || !nuevaCarpeta.exists()) return;
 
@@ -563,6 +619,9 @@ public class MainActivity extends AppCompatActivity {
         
         if (btnConfiguracion != null) btnConfiguracion.setColorFilter(textColor);
         if (btnInicio != null) btnInicio.setColorFilter(textColor);
+        if (btnScreenOff != null) {
+            btnScreenOff.setColorFilter(isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : textColor);
+        }
 
         // Asegurar que el explorador sea visible al navegar
         listViewArchivos.setVisibility(View.VISIBLE);
@@ -896,7 +955,9 @@ public class MainActivity extends AppCompatActivity {
     private void mostrarNombreVideo(String nombre) {
         if (txtNombreVideo == null) return;
         
-        txtNombreVideo.setText(getFileNameToDisplay(nombre));
+        String nombreLimpio = getFileNameToDisplay(nombre);
+        txtNombreVideo.setText(nombreLimpio);
+        if (txtMusicTitle != null) txtMusicTitle.setText(nombreLimpio);
         
         // Ajustar posición según configuración
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) txtNombreVideo.getLayoutParams();
