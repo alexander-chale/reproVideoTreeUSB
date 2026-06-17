@@ -498,8 +498,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPlayerError(androidx.media3.common.PlaybackException error) {
-                Toast.makeText(MainActivity.this, "Error de video: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Formato no compatible, saltando...", Toast.LENGTH_SHORT).show();
                 error.printStackTrace();
+                // Saltar automáticamente al siguiente video
+                irAlSiguienteVideo();
             }
 
 
@@ -622,7 +624,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean esVideo(String nombre) {
         String n = nombre.toLowerCase();
-        return n.endsWith(".mp4") || n.endsWith(".mkv") || n.endsWith(".avi");
+        return n.endsWith(".mp4") || n.endsWith(".mkv") || n.endsWith(".avi") || n.endsWith(".webm");
     }
 
     private String getFileNameToDisplay(String nombre) {
