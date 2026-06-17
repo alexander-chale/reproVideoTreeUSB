@@ -155,6 +155,16 @@
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
+                <ImageButton
+                    android:id="@+id/btnShuffle"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_centerInParent="true"
+                    android:src="@drawable/ic_shuffle"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Aleatorio"
+                    app:tint="#888888" />
+
                 <TextView
                     android:id="@+id/txtTiempoRestante"
                     android:layout_width="wrap_content"

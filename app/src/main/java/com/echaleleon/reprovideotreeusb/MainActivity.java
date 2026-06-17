@@ -72,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imgFeedback;
     private ProgressBar pbVolumen;
     private ProgressBar pbBrillo;
+    private ImageButton btnShuffle;
+    private boolean isShuffleMode = false;
     private boolean isUserHolding = false;
     private float startY;
     private int initialVolume;
@@ -92,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
 
     private LinearLayout contenedorExplorador;
 
-    private Stack<File> pilaDeRutas = new Stack<>();
     private List<File> archivosEnCarpetaActual = new ArrayList<>();
     private List<File> videosEnReproduccionActual = new ArrayList<>();
     private File carpetaReproduciendoActualmente;
@@ -108,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
     private int configSeekSeconds = 10;
     private boolean configNightMode = true;
     private boolean configPilotMode = false;
+    private boolean configHideExtension = false;
     
     private ImageButton btnInicio;
     private long tiempoPrimerClickAtras = 0;
@@ -154,13 +156,13 @@ public class MainActivity extends AppCompatActivity {
         configSeekSeconds = prefs.getInt("seek_seconds", 10);
         configNightMode = prefs.getBoolean("night_mode", true);
         configPilotMode = prefs.getBoolean("pilot_mode", false);
+        configHideExtension = prefs.getBoolean("hide_extension", false);
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         aplicarTemaFondo();
 
         btnConfiguracion.setOnClickListener(v -> mostrarDialogoConfiguracion());
         btnInicio.setOnClickListener(v -> {
-            pilaDeRutas.clear();
             escanearYRefrescar();
             Toast.makeText(this, "Volviendo a carpeta inicial", Toast.LENGTH_SHORT).show();
         });
@@ -177,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
         imgFeedback = findViewById(R.id.imgFeedback);
         pbVolumen = findViewById(R.id.pbVolumen);
         pbBrillo = findViewById(R.id.pbBrillo);
+        btnShuffle = findViewById(R.id.btnShuffle);
 
         capaZonasToque = findViewById(R.id.capaZonasToque);
         zonaIzquierda = findViewById(R.id.zonaIzquierda);
@@ -392,6 +395,25 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        btnShuffle.setOnClickListener(v -> {
+            isShuffleMode = !isShuffleMode;
+            btnShuffle.setColorFilter(isShuffleMode ? android.graphics.Color.parseColor("#BB86FC") : android.graphics.Color.parseColor("#888888"));
+            Toast.makeText(this, isShuffleMode ? "Modo Aleatorio Activo" : "Modo Ordenado", Toast.LENGTH_SHORT).show();
+            
+            // Si el usuario cambia a aleatorio mientras ve un video, re-mezclamos la lista actual
+            if (contenedorVideo.getVisibility() == View.VISIBLE && !videosEnReproduccionActual.isEmpty()) {
+                long currentPos = exoPlayer.getCurrentPosition();
+                int currentIndex = exoPlayer.getCurrentMediaItemIndex();
+                // Ajuste por dummy
+                int realIdx = currentIndex - (tieneAnteriorCarpetaGlobal() ? 1 : 0);
+                if (realIdx >= 0 && realIdx < videosEnReproduccionActual.size()) {
+                    File videoActual = videosEnReproduccionActual.get(realIdx);
+                    reproducirVideosDeCarpeta(videoActual, carpetaReproduciendoActualmente);
+                    exoPlayer.seekTo(exoPlayer.getCurrentMediaItemIndex(), currentPos);
+                }
+            }
+        });
+
         // 1. Definimos el receptor con lógica mejorada
         BroadcastReceiver usbReceiver = new BroadcastReceiver() {
             @Override
@@ -528,10 +550,6 @@ public class MainActivity extends AppCompatActivity {
     private void navegarACarpeta(File nuevaCarpeta) {
         if (nuevaCarpeta == null || !nuevaCarpeta.exists()) return;
 
-        if (pilaDeRutas.isEmpty() || !pilaDeRutas.peek().getAbsolutePath().equals(nuevaCarpeta.getAbsolutePath())) {
-            pilaDeRutas.push(nuevaCarpeta);
-        }
-
         carpetaReproduciendoActualmente = nuevaCarpeta;
         txtRutaActual.setText("Ruta: " + nuevaCarpeta.getAbsolutePath());
         
@@ -573,7 +591,11 @@ public class MainActivity extends AppCompatActivity {
 
         List<String> nombresParaMostrar = new ArrayList<>();
         for (File f : archivosEnCarpetaActual) {
-            nombresParaMostrar.add(f.isDirectory() ? "📁 " + f.getName() : "🎬 " + f.getName());
+            if (f.isDirectory()) {
+                nombresParaMostrar.add("📁 " + f.getName());
+            } else {
+                nombresParaMostrar.add("🎬 " + getFileNameToDisplay(f.getName()));
+            }
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.item_carpeta, R.id.txtNombreCarpeta, nombresParaMostrar) {
@@ -603,89 +625,88 @@ public class MainActivity extends AppCompatActivity {
         return n.endsWith(".mp4") || n.endsWith(".mkv") || n.endsWith(".avi");
     }
 
+    private String getFileNameToDisplay(String nombre) {
+        if (configHideExtension) {
+            int lastDot = nombre.lastIndexOf('.');
+            if (lastDot > 0) {
+                return nombre.substring(0, lastDot);
+            }
+        }
+        return nombre;
+    }
+
     private void reproducirVideosDeCarpeta(File videoInicial, File carpeta) {
+        mostrarNombreVideo(videoInicial.getName());
 
-        txtNombreVideo.setText(videoInicial.getName());
-        txtNombreVideo.setVisibility(View.VISIBLE);
-
-// Ocultar tras 3 segundos
-        txtNombreVideo.postDelayed(() -> txtNombreVideo.setVisibility(View.GONE), 3000);
         // Cambio visual de pantallas
         contenedorExplorador.setVisibility(View.GONE);
-        contenedorVideo.setVisibility(View.VISIBLE); // <-- ¡Cambio aquí!
+        contenedorVideo.setVisibility(View.VISIBLE);
         capaZonasToque.setVisibility(View.VISIBLE);
         ocultarBarrasSistema();
-        mostrarFeedback(0, android.view.Gravity.CENTER); // Mostrar barra de progreso al iniciar
+        mostrarFeedback(0, android.view.Gravity.CENTER);
 
         exoPlayer.stop();
         exoPlayer.clearMediaItems();
 
-        // === CORRECCIÓN AQUÍ: Limpiar y re-escanear la carpeta de forma segura ===
         videosEnReproduccionActual.clear();
-
         File[] archivos = carpeta.listFiles();
         if (archivos != null) {
             for (File f : archivos) {
-                // Aseguramos que sea un archivo de video válido y no una carpeta
                 if (f.isFile() && esVideo(f.getName())) {
                     videosEnReproduccionActual.add(f);
                 }
             }
         }
 
-        // Ordenar alfabéticamente para mantener la secuencia correcta
-        Collections.sort(videosEnReproduccionActual, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
-
-        // === VERIFICACIÓN DE SEGURIDAD ===
-        if (videosEnReproduccionActual.isEmpty()) {
-            Toast.makeText(this, "No se encontraron videos en esta carpeta", Toast.LENGTH_SHORT).show();
-            return;
+        // --- LOGICA DE ORDEN / ALEATORIO ---
+        if (isShuffleMode) {
+            // Mezclar la lista
+            Collections.shuffle(videosEnReproduccionActual);
+            // Pero asegurar que el video que seleccionamos sea el PRIMERO en reproducirse
+            videosEnReproduccionActual.remove(videoInicial);
+            videosEnReproduccionActual.add(0, videoInicial);
+        } else {
+            // Orden alfabético normal
+            Collections.sort(videosEnReproduccionActual, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
         }
 
-        // --- PASO A: CALCULAR ÍNDICE REAL ---
+        if (videosEnReproduccionActual.isEmpty()) return;
+
         int indiceReal = 0;
-        for (int i = 0; i < videosEnReproduccionActual.size(); i++) {
-            if (videosEnReproduccionActual.get(i).getAbsolutePath().equals(videoInicial.getAbsolutePath())) {
-                indiceReal = i;
-                break;
+        if (!isShuffleMode) {
+            for (int i = 0; i < videosEnReproduccionActual.size(); i++) {
+                if (videosEnReproduccionActual.get(i).getAbsolutePath().equals(videoInicial.getAbsolutePath())) {
+                    indiceReal = i;
+                    break;
+                }
             }
         }
 
-        // --- PASO B: INYECTAR DUMMY AL INICIO ---
-        boolean tieneAnterior = tieneAnteriorCarpetaGlobal();
-        if (tieneAnterior) {
+        // Inyectar Dummies y cargar ExoPlayer
+        if (tieneAnteriorCarpetaGlobal()) {
             exoPlayer.addMediaItem(MediaItem.fromUri(Uri.parse("asset:///dummy_prev.mp4")));
-            indiceReal++; // Desplazar el índice real
+            indiceReal++;
         }
 
-        // --- PASO C: CARGAR LOS VIDEOS REALES ---
         for (File v : videosEnReproduccionActual) {
             exoPlayer.addMediaItem(MediaItem.fromUri(Uri.fromFile(v)));
         }
 
-        // --- PASO D: INYECTAR DUMMY AL FINAL ---
         if (tieneSiguienteCarpetaGlobal()) {
             exoPlayer.addMediaItem(MediaItem.fromUri(Uri.parse("asset:///dummy_next.mp4")));
         }
 
-        // Arrancar la reproducción en el video correcto
         exoPlayer.seekTo(indiceReal, 0);
         
-        // RECUPERAR POSICION SI ES EL MISMO VIDEO GUARDADO
-        SharedPreferences prefs = getSharedPreferences("resume_prefs", MODE_PRIVATE);
-        String lastPath = prefs.getString("last_video_path", "");
-        if (lastPath.equals(videoInicial.getAbsolutePath())) {
-            long lastPos = prefs.getLong("last_video_pos", 0);
-            if (lastPos > 0 && lastPos < 5000000) { // Evitar errores si el video es muy corto o corrupto
-                 exoPlayer.seekTo(indiceReal, lastPos);
-            }
+        // Resume playback logic...
+        SharedPreferences resPrefs = getSharedPreferences("resume_prefs", MODE_PRIVATE);
+        if (resPrefs.getString("last_video_path", "").equals(videoInicial.getAbsolutePath())) {
+            long pos = resPrefs.getLong("last_video_pos", 0);
+            if (pos > 0) exoPlayer.seekTo(indiceReal, pos);
         }
 
         exoPlayer.prepare();
         exoPlayer.play();
-
-        // Nueva línea para mostrar el nombre
-        //mostrarNombreVideo(videoInicial.getName());
     }
 
 
@@ -733,22 +754,34 @@ public class MainActivity extends AppCompatActivity {
         if (contenedorVideo.getVisibility() == View.VISIBLE) {
             exoPlayer.stop();
             contenedorVideo.setVisibility(View.GONE);
-            capaZonasToque.setVisibility(View.GONE); // <-- Ocultar zonas táctiles
+            capaZonasToque.setVisibility(View.GONE);
             contenedorExplorador.setVisibility(View.VISIBLE);
+            listViewArchivos.setVisibility(View.VISIBLE);
+            txtRutaActual.setVisibility(View.VISIBLE);
             mostrarBarrasSistema();
         }
-        // CASO B: Si ya estábamos viendo el explorador, usamos tu sistema de carpetas con la pila
-        else if (pilaDeRutas.size() > 1) {
-            pilaDeRutas.pop(); // Sacar carpeta actual
-            File carpetaPadre = pilaDeRutas.peek(); // Ver la carpeta anterior
-            navegarACarpeta(carpetaPadre); // Redibujar lista
-        } else {
-            // CASO C: Prevenir salida accidental
-            if (tiempoPrimerClickAtras + 2000 > System.currentTimeMillis()) {
-                super.onBackPressed();
+        // CASO B: Navegación jerárquica (Subir de nivel)
+        else {
+            File actual = carpetaReproduciendoActualmente;
+            File interna = Environment.getExternalStorageDirectory();
+            
+            if (actual != null && !actual.getAbsolutePath().equals(interna.getAbsolutePath())) {
+                File padre = actual.getParentFile();
+                
+                // Si el padre es inaccesible o es la carpeta /storage (lista de discos), saltamos a la interna
+                if (padre == null || padre.getAbsolutePath().equals("/storage") || padre.getAbsolutePath().equals("/storage/emulated")) {
+                    navegarACarpeta(interna);
+                } else {
+                    navegarACarpeta(padre);
+                }
             } else {
-                Toast.makeText(this, "Presiona atrás de nuevo para salir", Toast.LENGTH_SHORT).show();
-                tiempoPrimerClickAtras = System.currentTimeMillis();
+                // CASO C: Prevenir salida accidental en la raíz
+                if (tiempoPrimerClickAtras + 2000 > System.currentTimeMillis()) {
+                    super.onBackPressed();
+                } else {
+                    Toast.makeText(this, "Presiona atrás de nuevo para salir", Toast.LENGTH_SHORT).show();
+                    tiempoPrimerClickAtras = System.currentTimeMillis();
+                }
             }
         }
     }
@@ -848,7 +881,7 @@ public class MainActivity extends AppCompatActivity {
     private void mostrarNombreVideo(String nombre) {
         if (txtNombreVideo == null) return;
         
-        txtNombreVideo.setText(nombre);
+        txtNombreVideo.setText(getFileNameToDisplay(nombre));
         
         // Ajustar posición según configuración
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) txtNombreVideo.getLayoutParams();
@@ -863,13 +896,23 @@ public class MainActivity extends AppCompatActivity {
         }
         txtNombreVideo.setLayoutParams(params);
         
+        // Asegurar visibilidad del contenedor para la previsualización
+        if (contenedorVideo != null) {
+            contenedorVideo.setVisibility(View.VISIBLE);
+        }
         txtNombreVideo.setVisibility(View.VISIBLE);
 
         // Cancelar ocultamientos previos para evitar parpadeos
         txtNombreVideo.removeCallbacks(null);
 
         // Oculta el nombre automáticamente después de 3 segundos
-        txtNombreVideo.postDelayed(() -> txtNombreVideo.setVisibility(View.GONE), 3000);
+        txtNombreVideo.postDelayed(() -> {
+            txtNombreVideo.setVisibility(View.GONE);
+            // Si el reproductor no estaba activo, volvemos a ocultar el contenedor
+            if (exoPlayer != null && !exoPlayer.isPlaying() && contenedorExplorador != null && contenedorExplorador.getVisibility() == View.VISIBLE) {
+                if (contenedorVideo != null) contenedorVideo.setVisibility(View.GONE);
+            }
+        }, 3000);
     }
 
     private void mostrarFeedback(int resId, int gravity) {
@@ -990,6 +1033,7 @@ public class MainActivity extends AppCompatActivity {
         final boolean oldNightMode = configNightMode;
         final boolean oldTitleTop = configTitleTop;
         final boolean oldPilotMode = configPilotMode;
+        final boolean oldHideExtension = configHideExtension;
 
         TextInputEditText editFolder = view.findViewById(R.id.editDefaultFolder);
         SeekBar seekBarSkip = view.findViewById(R.id.seekBarSkipTime);
@@ -1000,6 +1044,7 @@ public class MainActivity extends AppCompatActivity {
         
         SwitchMaterial switchNight = view.findViewById(R.id.switchNightMode);
         SwitchMaterial switchPilot = view.findViewById(R.id.switchPilotMode);
+        SwitchMaterial switchHideExt = view.findViewById(R.id.switchHideExtension);
 
         editFolder.setText(configDefaultFolder);
         seekBarSkip.setProgress(configSeekSeconds);
@@ -1009,6 +1054,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarHeight.setProgress(configItemHeight);
         switchNight.setChecked(configNightMode);
         switchPilot.setChecked(configPilotMode);
+        switchHideExt.setChecked(configHideExtension);
 
         seekBarSkip.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -1022,7 +1068,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarText.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 configTextSize = progress;
-                if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+                if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -1031,7 +1077,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarHeight.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 configItemHeight = progress;
-                if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+                if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
@@ -1041,19 +1087,22 @@ public class MainActivity extends AppCompatActivity {
             configNightMode = isChecked;
             aplicarTemaFondo();
             actualizarColoresDialogo(view);
-            if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+            if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
         });
 
         switchTitle.setOnCheckedChangeListener((buttonView, isChecked) -> {
             configTitleTop = isChecked;
-            // Mostrar previsualización del título si el video está visible
-            if (contenedorVideo.getVisibility() == View.VISIBLE) {
-                mostrarNombreVideo("Ejemplo de Posición");
-            }
+            // Forzar visualización del título para previsualización
+            mostrarNombreVideo("Ejemplo de Posición");
         });
 
         switchPilot.setOnCheckedChangeListener((buttonView, isChecked) -> {
             configPilotMode = isChecked;
+        });
+
+        switchHideExt.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            configHideExtension = isChecked;
+            if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
         });
 
         actualizarColoresDialogo(view);
@@ -1074,6 +1123,7 @@ public class MainActivity extends AppCompatActivity {
                     editor.putBoolean("title_top", configTitleTop);
                     editor.putBoolean("night_mode", configNightMode);
                     editor.putBoolean("pilot_mode", configPilotMode);
+                    editor.putBoolean("hide_extension", configHideExtension);
                     editor.apply();
 
                     Toast.makeText(this, "Ajustes guardados", Toast.LENGTH_SHORT).show();
@@ -1085,9 +1135,10 @@ public class MainActivity extends AppCompatActivity {
                     configNightMode = oldNightMode;
                     configTitleTop = oldTitleTop;
                     configPilotMode = oldPilotMode;
+                    configHideExtension = oldHideExtension;
                     
                     aplicarTemaFondo();
-                    if (!pilaDeRutas.isEmpty()) navegarACarpeta(pilaDeRutas.peek());
+                    if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
                     if (contenedorVideo.getVisibility() == View.VISIBLE) {
                         mostrarNombreVideo(txtNombreVideo.getText().toString());
                     }
@@ -1284,37 +1335,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void escanearYRefrescar() {
-        pilaDeRutas.clear();
-        
-        // 1. Base: Memoria interna del teléfono (Permite volver a ella al dar atrás)
+        // 1. Localizar memoria interna
         File interna = Environment.getExternalStorageDirectory();
-        pilaDeRutas.push(interna);
 
         // 2. Intentar localizar USB en /storage/
         File storage = new File("/storage/");
         if (storage.exists() && storage.listFiles() != null) {
             for (File f : storage.listFiles()) {
-                // Filtramos la memoria interna y carpetas del sistema
                 if (f.isDirectory() && !f.getName().equals("emulated") && !f.getName().equals("self")) {
                     
-                    // Si encontramos un USB, revisamos si tiene la carpeta favorita
                     if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
                         File carpetaFav = new File(f, configDefaultFolder);
                         if (carpetaFav.exists() && carpetaFav.isDirectory()) {
-                            pilaDeRutas.push(f); // Añadir raíz del USB al historial para poder volver
-                            navegarACarpeta(carpetaFav); // Entrar directamente a la favorita
+                            navegarACarpeta(carpetaFav);
                             return;
                         }
                     }
 
-                    // Si no hay favorita, entramos a la raíz del USB
                     navegarACarpeta(f);
                     return;
                 }
             }
         }
 
-        // 3. Si no hay USB, buscamos la carpeta favorita en la propia memoria interna
+        // 3. Si no hay USB, buscamos favorita en interna
         if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
             File carpetaFav = new File(interna, configDefaultFolder);
             if (carpetaFav.exists() && carpetaFav.isDirectory()) {
@@ -1323,7 +1367,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // 4. Si nada de lo anterior, nos quedamos mostrando la memoria interna
         navegarACarpeta(interna);
     }
 

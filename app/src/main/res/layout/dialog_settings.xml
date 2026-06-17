@@ -8,142 +8,158 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
-
-        <!-- CATEGORIA GENERAL -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="GENERAL"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="16dp"/>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:hint="Carpeta inicial (Videos Musicales)"
-            app:hintTextColor="#BB86FC"
-            app:boxStrokeColor="#BB86FC">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editDefaultFolder"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
+            android:baselineAligned="false">
 
+            <!-- Columna Izquierda: General -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.2"
+                android:orientation="vertical"
+                android:paddingEnd="8dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="GENERAL"
+                    android:textColor="#888888"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:hint="Carpeta Inicial"
+                    app:hintEnabled="true"
+                    app:hintAnimationEnabled="true">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editDefaultFolder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="10dp"
+                        android:textSize="14sp"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Salto (seg)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <SeekBar
+                        android:id="@+id/seekBarSkipTime"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="60"
+                        android:progressTint="#BB86FC"
+                        android:thumbTint="#BB86FC" />
+                    <TextView
+                        android:id="@+id/txtValueSeek"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10s"
+                        android:textColor="#888888"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchNightMode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Modo Noche"
+                    android:textSize="13sp"
+                    android:minHeight="40dp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchPilotMode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Modo Piloto"
+                    android:textSize="13sp"
+                    android:minHeight="40dp" />
+            </LinearLayout>
+
+            <!-- Columna Derecha: Apariencia -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingStart="8dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="APARIENCIA"
+                    android:textColor="#888888"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchHideExtension"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Ocultar Ext."
+                    android:textSize="13sp"
+                    android:minHeight="40dp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchTitlePosition"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Título Arriba"
+                    android:textSize="13sp"
+                    android:minHeight="40dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Segundos de salto"
-                    android:textSize="16sp" />
+                    android:text="Tamaño Letra"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:layout_marginTop="4dp"/>
+                <SeekBar
+                    android:id="@+id/seekBarTextSize"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="60"
+                    android:progressTint="#BB86FC"
+                    android:thumbTint="#BB86FC" />
 
                 <TextView
-                    android:id="@+id/txtValueSeek"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="10 segundos"
-                    android:textSize="12sp" />
+                    android:text="Altura Item"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:layout_marginTop="4dp"/>
+                <SeekBar
+                    android:id="@+id/seekBarItemHeight"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="200"
+                    android:progressTint="#BB86FC"
+                    android:thumbTint="#BB86FC" />
             </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/seekBarSkipTime"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:max="60"
-                android:progress="10"
-                android:progressTint="#BB86FC"
-                android:thumbTint="#BB86FC" />
         </LinearLayout>
-
-        <!-- CATEGORIA APARIENCIA -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="APARIENCIA"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="16dp"
-            android:layout_marginTop="8dp"/>
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switchNightMode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Modo Noche (Oscuro)"
-            android:textSize="16sp"
-            app:useMaterialThemeColors="true"
-            android:layout_marginBottom="8dp"/>
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switchPilotMode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Modo Piloto"
-            android:textSize="16sp"
-            app:useMaterialThemeColors="true"
-            android:layout_marginBottom="8dp"/>
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switchTitlePosition"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Mostrar título arriba"
-            android:textSize="16sp"
-            app:useMaterialThemeColors="true"
-            android:layout_marginBottom="16dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tamaño de letra"
-            android:textSize="16sp"
-            android:layout_marginBottom="8dp"/>
-
-        <SeekBar
-            android:id="@+id/seekBarTextSize"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="60"
-            android:progress="32"
-            android:progressTint="#BB86FC"
-            android:thumbTint="#BB86FC"
-            android:layout_marginBottom="16dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Altura de los items"
-            android:textSize="16sp"
-            android:layout_marginBottom="8dp"/>
-
-        <SeekBar
-            android:id="@+id/seekBarItemHeight"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="200"
-            android:progress="100"
-            android:progressTint="#BB86FC"
-            android:thumbTint="#BB86FC"
-            android:layout_marginBottom="8dp"/>
 
     </LinearLayout>
 </ScrollView>
