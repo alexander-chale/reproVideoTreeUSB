@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -117,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnScreenOff;
     private RelativeLayout capaPantallaApagada;
     private TextView txtMusicTitle;
+    private ImageView imgAlbumArt;
     private boolean isScreenOffMode = false;
     private long tiempoPrimerClickAtras = 0;
 
@@ -157,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
         btnScreenOff = findViewById(R.id.btnScreenOff);
         capaPantallaApagada = findViewById(R.id.capaPantallaApagada);
         txtMusicTitle = findViewById(R.id.txtMusicTitle);
+        imgAlbumArt = findViewById(R.id.imgAlbumArt);
 
         SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
         configItemHeight = prefs.getInt("item_height", 100);
@@ -491,15 +494,37 @@ public class MainActivity extends AppCompatActivity {
 
                 // 2. Verificación de configuración local
                 if (mediaItem.localConfiguration != null) {
-                    String uri = mediaItem.localConfiguration.uri.toString();
+                    String uriStr = mediaItem.localConfiguration.uri.toString();
 
                     // Solo mostramos si NO es uno de los archivos dummy
-                    if (!uri.contains("dummy")) {
+                    if (!uriStr.contains("dummy")) {
                         try {
-                            // 3. Decodificar la URI para quitar los %20 y obtener el nombre limpio
-                            String nombreArchivo = Uri.decode(new File(uri).getName());
-                            mostrarNombreVideo(nombreArchivo);
-                            mostrarFeedback(0, android.view.Gravity.CENTER); // Para mostrar la barra de progreso al cambiar
+                            String nombreArchivo = Uri.decode(new File(uriStr).getName());
+                            
+                            // LOGICA DE CAMBIO AUTO AUDIO/VIDEO
+                            boolean isAudio = isAudioFile(uriStr);
+                            if (isAudio) {
+                                capaPantallaApagada.setVisibility(View.VISIBLE);
+                                iniciarAnimacionBarras();
+                                cargarMetadatosAudio(new File(Uri.parse(uriStr).getPath()));
+                            } else {
+                                // Si es video, resetear carátula a predeterminada por si está activa la capa
+                                if (imgAlbumArt != null) {
+                                    imgAlbumArt.setImageResource(R.drawable.ic_minimal_player); // O ic_home_custom
+                                    imgAlbumArt.setPadding(40, 40, 40, 40);
+                                    imgAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                                }
+                                
+                                // Si es video, volver a video a menos que el modo manual esté activo
+                                capaPantallaApagada.setVisibility(isScreenOffMode ? View.VISIBLE : View.GONE);
+                                if (!isScreenOffMode) {
+                                    mostrarNombreVideo(nombreArchivo);
+                                } else {
+                                    iniciarAnimacionBarras();
+                                }
+                            }
+                            
+                            mostrarFeedback(0, android.view.Gravity.CENTER);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -572,7 +597,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void iniciarAnimacionBarras() {
-        if (!isScreenOffMode) return;
+        if (capaPantallaApagada.getVisibility() == View.GONE) return;
 
         View[] bars = {
             findViewById(R.id.bar1), findViewById(R.id.bar2),
@@ -585,8 +610,10 @@ public class MainActivity extends AppCompatActivity {
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                if (!isScreenOffMode || contenedorVideo.getVisibility() == View.GONE || !exoPlayer.isPlaying()) {
-                    if (!isScreenOffMode) return;
+                // Si la capa se ocultó o no hay reproducción, paramos de animar agresivamente
+                if (capaPantallaApagada.getVisibility() == View.GONE || contenedorVideo.getVisibility() == View.GONE) return;
+
+                if (!exoPlayer.isPlaying()) {
                     h.postDelayed(this, 500); // Reintentar lento si está pausado
                     return;
                 }
@@ -656,6 +683,8 @@ public class MainActivity extends AppCompatActivity {
         for (File f : archivosEnCarpetaActual) {
             if (f.isDirectory()) {
                 nombresParaMostrar.add("📁 " + f.getName());
+            } else if (isAudioFile(f.getName())) {
+                nombresParaMostrar.add("🎵 " + getFileNameToDisplay(f.getName()));
             } else {
                 nombresParaMostrar.add("🎬 " + getFileNameToDisplay(f.getName()));
             }
@@ -685,7 +714,12 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean esVideo(String nombre) {
         String n = nombre.toLowerCase();
-        return n.endsWith(".mp4") || n.endsWith(".mkv") || n.endsWith(".avi") || n.endsWith(".webm");
+        return n.endsWith(".mp4") || n.endsWith(".mkv") || n.endsWith(".avi") || n.endsWith(".webm") || n.endsWith(".mp3");
+    }
+
+    private boolean isAudioFile(String path) {
+        if (path == null) return false;
+        return path.toLowerCase().endsWith(".mp3");
     }
 
     private String getFileNameToDisplay(String nombre) {
@@ -699,6 +733,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void reproducirVideosDeCarpeta(File videoInicial, File carpeta) {
+        boolean isAudio = isAudioFile(videoInicial.getAbsolutePath());
+        
+        // Auto-activar capa de música si es MP3
+        if (isAudio) {
+            capaPantallaApagada.setVisibility(View.VISIBLE);
+            iniciarAnimacionBarras();
+            cargarMetadatosAudio(videoInicial);
+        } else {
+            // Resetear carátula para videos
+            if (imgAlbumArt != null) {
+                imgAlbumArt.setImageResource(R.drawable.ic_minimal_player);
+                imgAlbumArt.setPadding(40, 40, 40, 40);
+                imgAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            }
+
+            // Si es video, solo mostrar capa si el botón manual está activo
+            capaPantallaApagada.setVisibility(isScreenOffMode ? View.VISIBLE : View.GONE);
+            if (isScreenOffMode) iniciarAnimacionBarras();
+        }
+
         mostrarNombreVideo(videoInicial.getName());
 
         // Cambio visual de pantallas
@@ -772,6 +826,40 @@ public class MainActivity extends AppCompatActivity {
         exoPlayer.play();
     }
 
+
+    private void cargarMetadatosAudio(File file) {
+        if (txtMusicTitle == null || imgAlbumArt == null) return;
+        
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(file.getAbsolutePath());
+            String title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+            String artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+            
+            if (title != null) {
+                txtMusicTitle.setText(title + (artist != null ? " - " + artist : ""));
+            } else {
+                txtMusicTitle.setText(getFileNameToDisplay(file.getName()));
+            }
+
+            byte[] art = retriever.getEmbeddedPicture();
+            if (art != null) {
+                android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.length);
+                imgAlbumArt.setImageBitmap(bitmap);
+                imgAlbumArt.setPadding(0, 0, 0, 0);
+                imgAlbumArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            } else {
+                imgAlbumArt.setImageResource(R.drawable.ic_home_custom);
+                imgAlbumArt.setPadding(40, 40, 40, 40);
+                imgAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            }
+        } catch (Exception e) {
+            txtMusicTitle.setText(getFileNameToDisplay(file.getName()));
+            imgAlbumArt.setImageResource(R.drawable.ic_home_custom);
+        } finally {
+            try { retriever.release(); } catch (Exception ignored) {}
+        }
+    }
 
     private void reproducirSiguienteCarpetaGlobal() {
         if (carpetaReproduciendoActualmente == null) return;
