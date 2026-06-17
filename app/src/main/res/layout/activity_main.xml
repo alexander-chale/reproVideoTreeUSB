@@ -24,6 +24,7 @@
             android:layout_weight="1" />
 
         <LinearLayout
+            android:id="@+id/layoutBarraInferior"
             android:layout_width="match_parent"
             android:layout_height="100dp"
             android:layout_marginBottom="48dp" android:orientation="horizontal"

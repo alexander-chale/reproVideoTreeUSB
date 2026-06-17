@@ -93,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
     // NUEVAS VARIABLES:
 
     private LinearLayout contenedorExplorador;
+    private LinearLayout layoutBarraInferior;
 
     private List<File> archivosEnCarpetaActual = new ArrayList<>();
     private List<File> videosEnReproduccionActual = new ArrayList<>();
@@ -145,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
         txtRutaActual = findViewById(R.id.txtRutaActual);
         listViewArchivos = findViewById(R.id.listViewArchivos);
         contenedorExplorador = findViewById(R.id.contenedorExplorador);
+        layoutBarraInferior = findViewById(R.id.layoutBarraInferior);
         btnConfiguracion = findViewById(R.id.btnConfiguracion);
         btnInicio = findViewById(R.id.btnInicio);
 
@@ -1161,13 +1163,26 @@ public class MainActivity extends AppCompatActivity {
 
     private void aplicarTemaFondo() {
         View root = findViewById(android.R.id.content);
-        int color = configNightMode ? android.graphics.Color.parseColor("#121212") : android.graphics.Color.parseColor("#F5F5F5");
-        root.setBackgroundColor(color);
+        int bgColor = configNightMode ? android.graphics.Color.parseColor("#121212") : android.graphics.Color.parseColor("#F5F5F5");
+        int barColor = configNightMode ? android.graphics.Color.parseColor("#1A1A1A") : android.graphics.Color.WHITE;
+        int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
+
+        root.setBackgroundColor(bgColor);
         
-        // El contenedor del explorador también necesita actualizarse
         if (contenedorExplorador != null) {
-            contenedorExplorador.setBackgroundColor(color);
+            contenedorExplorador.setBackgroundColor(bgColor);
         }
+
+        if (layoutBarraInferior != null) {
+            layoutBarraInferior.setBackgroundColor(barColor);
+        }
+
+        if (txtRutaActual != null) {
+            txtRutaActual.setTextColor(textColor);
+        }
+
+        if (btnConfiguracion != null) btnConfiguracion.setColorFilter(textColor);
+        if (btnInicio != null) btnInicio.setColorFilter(textColor);
     }
 
     private void actualizarColoresDialogo(View dialogView) {
