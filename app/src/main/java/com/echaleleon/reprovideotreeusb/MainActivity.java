@@ -724,15 +724,26 @@ public class MainActivity extends AppCompatActivity {
             Collections.sort(listaCarpetas, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
 
             int indiceActual = listaCarpetas.indexOf(carpetaReproduciendoActualmente);
-            if (indiceActual != -1 && indiceActual + 1 < listaCarpetas.size()) {
-                File siguienteCarpeta = listaCarpetas.get(indiceActual + 1);
+            File siguienteCarpeta = null;
 
+            if (indiceActual != -1 && indiceActual + 1 < listaCarpetas.size()) {
+                // Hay una carpeta siguiente normal
+                siguienteCarpeta = listaCarpetas.get(indiceActual + 1);
+            } else {
+                // Hemos llegado al final de todas las carpetas
+                Toast.makeText(this, "Has llegado al final. Volviendo a la primera carpeta.", Toast.LENGTH_LONG).show();
+                if (!listaCarpetas.isEmpty()) {
+                    siguienteCarpeta = listaCarpetas.get(0); // Volver a la primera
+                }
+            }
+
+            if (siguienteCarpeta != null) {
                 // Forzar el cambio visual del explorador a esa carpeta tras bambalinas
                 navegarACarpeta(siguienteCarpeta);
 
                 contenedorExplorador.setVisibility(View.GONE);
                 playerView.setVisibility(View.VISIBLE);
-                capaZonasToque.setVisibility(View.VISIBLE); // <-- Asegurar que siga visible
+                capaZonasToque.setVisibility(View.VISIBLE);
 
                 // Pero como seguimos reproduciendo, volvemos a ocultar el explorador
                 txtRutaActual.setVisibility(View.GONE);

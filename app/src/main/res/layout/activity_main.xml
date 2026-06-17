@@ -17,11 +17,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+        <ListView
+            android:id="@+id/listViewArchivos"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_height="100dp"
+            android:layout_marginBottom="48dp" android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="#1A1A1A"
+            android:elevation="4dp"
+            android:paddingHorizontal="16dp">
 
             <TextView
                 android:id="@+id/txtRutaActual"
@@ -30,33 +39,31 @@
                 android:layout_weight="1"
                 android:text="Ruta: /storage"
                 android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:paddingBottom="8dp"/>
+                android:textSize="16sp"
+                android:maxLines="2"
+                android:ellipsize="end" />
 
             <ImageButton
                 android:id="@+id/btnInicio"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
                 android:src="@drawable/ic_home_custom"
                 android:background="?android:attr/selectableItemBackground"
                 android:padding="8dp"
                 android:layout_marginEnd="8dp"
+                android:scaleType="fitCenter"
                 android:contentDescription="Ir a Inicio" />
 
             <ImageButton
                 android:id="@+id/btnConfiguracion"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_preferences"
                 android:background="?android:attr/selectableItemBackground"
                 android:padding="8dp"
+                android:scaleType="fitCenter"
                 android:contentDescription="Configuración" />
         </LinearLayout>
-
-        <ListView
-            android:id="@+id/listViewArchivos"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
     </LinearLayout>
 
     <FrameLayout
