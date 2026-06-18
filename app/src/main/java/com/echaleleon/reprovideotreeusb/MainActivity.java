@@ -314,6 +314,14 @@ public class MainActivity extends AppCompatActivity {
         mostrarBarrasSistema();
 
         exoPlayer = new ExoPlayer.Builder(this).build();
+        
+        // Atributos de audio informativos para el sistema (sin cambiar el manejo de foco manual)
+        androidx.media3.common.AudioAttributes audioAttrs = new androidx.media3.common.AudioAttributes.Builder()
+                .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+                .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE)
+                .build();
+        exoPlayer.setAudioAttributes(audioAttrs, false); 
+
         exoPlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC);
         playerView.setPlayer(exoPlayer);
 
@@ -769,6 +777,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_MEDIA_NEXT:
+                    irAlSiguienteVideo();
+                    if (exoPlayer != null) exoPlayer.play();
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                    irAlVideoAnterior();
+                    if (exoPlayer != null) exoPlayer.play();
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_PLAY:
+                    if (exoPlayer != null) exoPlayer.play();
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                    if (exoPlayer != null) exoPlayer.pause();
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                case KeyEvent.KEYCODE_HEADSETHOOK:
+                    if (exoPlayer != null) {
+                        if (exoPlayer.isPlaying()) exoPlayer.pause();
+                        else exoPlayer.play();
+                    }
+                    return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
     public void onBackPressed() {
         if (contenedorVideo.getVisibility() == View.VISIBLE) {
             if (isLocked) {
@@ -1213,12 +1252,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void irAlVideoAnterior() {
-        if (exoPlayer.hasPreviousMediaItem()) exoPlayer.seekToPreviousMediaItem();
+        if (exoPlayer == null) return;
+        if (exoPlayer.hasPreviousMediaItem()) {
+            exoPlayer.seekToPreviousMediaItem();
+            exoPlayer.play();
+        }
         else reproducirCarpetaAnteriorGlobal();
     }
 
     private void irAlSiguienteVideo() {
-        if (exoPlayer.hasNextMediaItem()) exoPlayer.seekToNextMediaItem();
+        if (exoPlayer == null) return;
+        if (exoPlayer.hasNextMediaItem()) {
+            exoPlayer.seekToNextMediaItem();
+            exoPlayer.play();
+        }
         else reproducirSiguienteCarpetaGlobal();
     }
 
