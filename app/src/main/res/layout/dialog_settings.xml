@@ -11,6 +11,62 @@
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp">
 
+        <!-- Selector de Modo a Editar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="15dp"
+            android:background="#22FFFFFF"
+            android:padding="8dp">
+            <TextView
+                android:id="@+id/lblEditMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/config_edit_mode"
+                android:textColor="#BB86FC"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:layout_marginEnd="10dp"/>
+            <Spinner
+                android:id="@+id/spinnerEditMode"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:backgroundTint="#FFFFFF" />
+        </LinearLayout>
+
+        <!-- Configuración específica del modo -->
+        <LinearLayout
+            android:id="@+id/layoutModeDetail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="15dp"
+            android:visibility="gone">
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchModeEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/config_mode_enabled"
+                android:textSize="13sp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilModeName"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/config_mode_name_hint">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editModeName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

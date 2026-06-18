@@ -113,7 +113,18 @@ public class MainActivity extends AppCompatActivity {
     private boolean configPilotMode = false;
     private boolean configHideExtension = false;
     private String configLanguage = "es";
+    private int activeModeIndex = -1; // -1 es Conductor (Global)
+    private List<UserMode> userModes = new ArrayList<>();
     
+    private static class UserMode {
+        String name;
+        String folder;
+        boolean enabled;
+        // Podríamos guardar más settings específicos aquí, pero por simplicidad usaremos prefijos en prefs
+        UserMode(String n, String f, boolean e) { name = n; folder = f; enabled = e; }
+    }
+
+    private LinearLayout layoutBotonesModos;
     private ImageButton btnInicio;
     private ImageButton btnScreenOff;
     private RelativeLayout capaPantallaApagada;
@@ -148,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
         configLanguage = prefs.getString("language", "es");
         setLocale(configLanguage);
+        loadUserModes();
 
         super.onCreate(savedInstanceState);
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -158,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
         contenedorExplorador = findViewById(R.id.contenedorExplorador);
         layoutBarraInferior = findViewById(R.id.layoutBarraInferior);
         btnConfiguracion = findViewById(R.id.btnConfiguracion);
+        layoutBotonesModos = findViewById(R.id.layoutBotonesModos);
         btnInicio = findViewById(R.id.btnInicio);
         btnScreenOff = findViewById(R.id.btnScreenOff);
         capaPantallaApagada = findViewById(R.id.capaPantallaApagada);
@@ -276,7 +289,10 @@ public class MainActivity extends AppCompatActivity {
             }
         }, filter);
 
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::escanearYRefrescar, 1000);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            actualizarBarraModos();
+            escanearYRefrescar();
+        }, 1000);
 
         listViewArchivos.setOnItemClickListener((parent, view, position, id) -> {
             File archivoSeleccionado = archivosEnCarpetaActual.get(position);
@@ -454,6 +470,100 @@ public class MainActivity extends AppCompatActivity {
     private void mostrarDialogoPermisos() {
         new AlertDialog.Builder(this).setTitle("Acceso al USB requerido").setMessage("Para reproducir tus videos, necesito permiso para acceder a los archivos del USB.")
                 .setPositiveButton("Dar Permiso", (dialog, which) -> solicitarPermisoEspecial()).setCancelable(false).show();
+    }
+
+    private void loadUserModes() {
+        SharedPreferences p = getSharedPreferences("config_repro", MODE_PRIVATE);
+        userModes.clear();
+        for (int i = 0; i < 3; i++) {
+            String name = p.getString("mode_" + i + "_name", "Niños " + (i + 1));
+            String folder = p.getString("mode_" + i + "_folder", "");
+            boolean enabled = p.getBoolean("mode_" + i + "_enabled", i == 0); // Solo el primero activo por defecto
+            userModes.add(new UserMode(name, folder, enabled));
+        }
+    }
+
+    private void saveUserModes() {
+        SharedPreferences.Editor e = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
+        for (int i = 0; i < 3; i++) {
+            UserMode m = userModes.get(i);
+            e.putString("mode_" + i + "_name", m.name);
+            e.putString("mode_" + i + "_folder", m.folder);
+            e.putBoolean("mode_" + i + "_enabled", m.enabled);
+        }
+        e.apply();
+    }
+
+    private void actualizarBarraModos() {
+        if (layoutBotonesModos == null) return;
+        layoutBotonesModos.removeAllViews();
+        int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
+
+        for (int i = 0; i < userModes.size(); i++) {
+            UserMode m = userModes.get(i);
+            if (!m.enabled) continue;
+
+            final int index = i;
+            TextView btn = new TextView(this);
+            btn.setText(m.name.toUpperCase());
+            btn.setTextColor(activeModeIndex == i ? android.graphics.Color.parseColor("#BB86FC") : textColor);
+            btn.setTextSize(12);
+            btn.setPadding(20, 0, 20, 0);
+            btn.setGravity(android.view.Gravity.CENTER);
+            btn.setTypeface(null, android.graphics.Typeface.BOLD);
+            
+            int[] attrs = new int[]{android.R.attr.selectableItemBackground};
+            android.content.res.TypedArray typedArray = obtainStyledAttributes(attrs);
+            int backgroundResource = typedArray.getResourceId(0, 0);
+            btn.setBackgroundResource(backgroundResource);
+            typedArray.recycle();
+            
+            btn.setOnClickListener(v -> activarModo(index));
+            layoutBotonesModos.addView(btn, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        }
+    }
+
+    private void activarModo(int index) {
+        if (activeModeIndex == index) {
+            activeModeIndex = -1; // Volver a Conductor
+        } else {
+            activeModeIndex = index;
+        }
+        
+        cargarConfiguracionActual(); // Carga los settings del modo activo
+        actualizarBarraModos();
+        
+        if (activeModeIndex != -1) {
+            UserMode m = userModes.get(activeModeIndex);
+            if (!m.folder.isEmpty()) {
+                File f = new File(m.folder);
+                if (f.exists() && f.isDirectory()) {
+                    navegarACarpeta(f);
+                    Toast.makeText(this, "Modo: " + m.name, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+        }
+        escanearYRefrescar();
+    }
+
+    private void cargarConfiguracionActual() {
+        String prefix = activeModeIndex == -1 ? "" : "m" + activeModeIndex + "_";
+        SharedPreferences p = getSharedPreferences("config_repro", MODE_PRIVATE);
+        
+        // Cargamos los settings usando el prefijo si es un modo activo
+        configItemHeight = p.getInt(prefix + "item_height", 100);
+        configTextSize = p.getInt(prefix + "text_size", 32);
+        configDefaultFolder = p.getString(prefix + "default_folder", activeModeIndex == -1 ? "Videos Musicales" : "");
+        configTitleTop = p.getBoolean(prefix + "title_top", true);
+        configSeekSeconds = p.getInt(prefix + "seek_seconds", 10);
+        configNightMode = p.getBoolean(prefix + "night_mode", true);
+        configPilotMode = p.getBoolean(prefix + "pilot_mode", false);
+        configHideExtension = p.getBoolean(prefix + "hide_extension", false);
+        
+        aplicarTemaFondo();
+        if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
     }
 
     private void setLocale(String lang) {
@@ -785,12 +895,17 @@ public class MainActivity extends AppCompatActivity {
         if (hasFocus && contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE) ocultarBarrasSistema();
     }
 
+    private int editingModeIndex = -1; // -1: Conductor, 0-2: Modos
+
     private void mostrarDialogoConfiguracion() {
         View view = getLayoutInflater().inflate(R.layout.dialog_settings, null);
-        final int oldH = configItemHeight, oldT = configTextSize;
-        final boolean oldN = configNightMode, oldTi = configTitleTop, oldP = configPilotMode, oldE = configHideExtension;
-        final String oldL = configLanguage;
+        editingModeIndex = activeModeIndex;
 
+        Spinner spEditMode = view.findViewById(R.id.spinnerEditMode);
+        LinearLayout layoutModeDetail = view.findViewById(R.id.layoutModeDetail);
+        SwitchMaterial swModeEnabled = view.findViewById(R.id.switchModeEnabled);
+        TextInputEditText editModeName = view.findViewById(R.id.editModeName);
+        
         TextInputEditText editF = view.findViewById(R.id.editDefaultFolder);
         SeekBar sbSkip = view.findViewById(R.id.seekBarSkipTime);
         TextView tvSkip = view.findViewById(R.id.txtValueSeek);
@@ -802,6 +917,26 @@ public class MainActivity extends AppCompatActivity {
         SwitchMaterial swE = view.findViewById(R.id.switchHideExtension);
         Spinner spLang = view.findViewById(R.id.spinnerLanguage);
 
+        // Nombres para el selector de edición
+        String[] modoNames = {getString(R.string.config_mode_conductor), userModes.get(0).name, userModes.get(1).name, userModes.get(2).name};
+        ArrayAdapter<String> adapterModos = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, modoNames);
+        adapterModos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spEditMode.setAdapter(adapterModos);
+        spEditMode.setSelection(editingModeIndex + 1);
+
+        cargarDatosEnDialogo(view, editingModeIndex);
+
+        spEditMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
+                editingModeIndex = position - 1;
+                layoutModeDetail.setVisibility(editingModeIndex == -1 ? View.GONE : View.VISIBLE);
+                cargarDatosEnDialogo(view, editingModeIndex);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        // Idiomas
         String[] languages = {"Español", "English"};
         String[] langCodes = {"es", "en"};
         ArrayAdapter<String> langAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languages);
@@ -810,11 +945,6 @@ public class MainActivity extends AppCompatActivity {
         int currentLangPos = 0;
         for (int i=0; i<langCodes.length; i++) if (langCodes[i].equals(configLanguage)) currentLangPos = i;
         spLang.setSelection(currentLangPos);
-
-        editF.setText(configDefaultFolder); sbSkip.setProgress(configSeekSeconds); tvSkip.setText(configSeekSeconds + " " + (configLanguage.equals("es") ? "segundos" : "seconds"));
-        swTi.setChecked(configTitleTop); sbText.setProgress(configTextSize); sbH.setProgress(configItemHeight);
-        swN.setChecked(configNightMode); swP.setChecked(configPilotMode); swE.setChecked(configHideExtension);
-
         spLang.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
@@ -832,38 +962,90 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { tvSkip.setText(Math.max(1, p) + " " + (configLanguage.equals("es") ? "segundos" : "seconds")); }
             @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
         });
-        sbText.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { configTextSize = p; if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); }
-            @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
+        
+        swN.setOnCheckedChangeListener((bv, isC) -> { 
+            actualizarColoresDialogo(view); 
         });
-        sbH.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { configItemHeight = p; if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); }
-            @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
-        });
-        swN.setOnCheckedChangeListener((bv, isC) -> { configNightMode = isC; aplicarTemaFondo(); actualizarColoresDialogo(view); if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); });
-        swTi.setOnCheckedChangeListener((bv, isC) -> { configTitleTop = isC; mostrarNombreVideo(configLanguage.equals("es") ? "Ejemplo de Posición" : "Position Example"); });
-        swP.setOnCheckedChangeListener((bv, isC) -> configPilotMode = isC);
-        swE.setOnCheckedChangeListener((bv, isC) -> { configHideExtension = isC; if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); });
 
         actualizarColoresDialogo(view);
-        new MaterialAlertDialogBuilder(this).setTitle(R.string.config_title).setView(view).setPositiveButton(R.string.config_save, (d, w) -> {
-            configDefaultFolder = editF.getText().toString(); configSeekSeconds = sbSkip.getProgress();
-            SharedPreferences.Editor e = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
-            e.putInt("item_height", configItemHeight); e.putInt("text_size", configTextSize);
-            e.putString("default_folder", configDefaultFolder); e.putInt("seek_seconds", configSeekSeconds);
-            e.putBoolean("title_top", configTitleTop); e.putBoolean("night_mode", configNightMode);
-            e.putBoolean("pilot_mode", configPilotMode); e.putBoolean("hide_extension", configHideExtension); 
-            e.putString("language", configLanguage); e.apply();
-            recreate();
-        }).setNegativeButton(R.string.config_cancel, (d, w) -> {
-            configItemHeight = oldH; configTextSize = oldT; configNightMode = oldN; configTitleTop = oldTi; configPilotMode = oldP; configHideExtension = oldE;
-            if (!oldL.equals(configLanguage)) { configLanguage = oldL; setLocale(configLanguage); }
-            aplicarTemaFondo(); if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
-            if (contenedorVideo.getVisibility() == View.VISIBLE) mostrarNombreVideo(txtNombreVideo.getText().toString());
-        }).show();
+
+        final int oldH = configItemHeight, oldT = configTextSize;
+        final boolean oldN = configNightMode, oldTi = configTitleTop, oldP = configPilotMode, oldE = configHideExtension;
+        final String oldL = configLanguage;
+
+        new MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.config_title)
+            .setView(view)
+            .setPositiveButton(R.string.config_save, (d, w) -> {
+                guardarDatosDesdeDialogo(view, editingModeIndex);
+                if (editingModeIndex == activeModeIndex) cargarConfiguracionActual();
+                
+                SharedPreferences.Editor e = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
+                e.putString("language", configLanguage);
+                e.apply();
+                
+                actualizarBarraModos();
+                if (!oldL.equals(configLanguage)) recreate();
+            })
+            .setNegativeButton(R.string.config_cancel, (d, w) -> {
+                if (!oldL.equals(configLanguage)) { configLanguage = oldL; setLocale(configLanguage); }
+                cargarConfiguracionActual();
+            }).show();
+    }
+
+    private void cargarDatosEnDialogo(View v, int modeIdx) {
+        String prefix = modeIdx == -1 ? "" : "m" + modeIdx + "_";
+        SharedPreferences p = getSharedPreferences("config_repro", MODE_PRIVATE);
+        
+        ((TextInputEditText)v.findViewById(R.id.editDefaultFolder)).setText(p.getString(prefix + "default_folder", modeIdx == -1 ? "Videos Musicales" : ""));
+        ((SeekBar)v.findViewById(R.id.seekBarSkipTime)).setProgress(p.getInt(prefix + "seek_seconds", 10));
+        ((SwitchMaterial)v.findViewById(R.id.switchTitlePosition)).setChecked(p.getBoolean(prefix + "title_top", true));
+        ((SeekBar)v.findViewById(R.id.seekBarTextSize)).setProgress(p.getInt(prefix + "text_size", 32));
+        ((SeekBar)v.findViewById(R.id.seekBarItemHeight)).setProgress(p.getInt(prefix + "item_height", 100));
+        ((SwitchMaterial)v.findViewById(R.id.switchNightMode)).setChecked(p.getBoolean(prefix + "night_mode", true));
+        ((SwitchMaterial)v.findViewById(R.id.switchPilotMode)).setChecked(p.getBoolean(prefix + "pilot_mode", false));
+        ((SwitchMaterial)v.findViewById(R.id.switchHideExtension)).setChecked(p.getBoolean(prefix + "hide_extension", false));
+
+        if (modeIdx != -1) {
+            UserMode m = userModes.get(modeIdx);
+            ((SwitchMaterial)v.findViewById(R.id.switchModeEnabled)).setChecked(m.enabled);
+            ((TextInputEditText)v.findViewById(R.id.editModeName)).setText(m.name);
+        }
+    }
+
+    private void guardarDatosDesdeDialogo(View v, int modeIdx) {
+        String prefix = modeIdx == -1 ? "" : "m" + modeIdx + "_";
+        SharedPreferences.Editor e = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
+        
+        e.putString(prefix + "default_folder", ((TextInputEditText)v.findViewById(R.id.editDefaultFolder)).getText().toString());
+        e.putInt(prefix + "seek_seconds", ((SeekBar)v.findViewById(R.id.seekBarSkipTime)).getProgress());
+        e.putBoolean(prefix + "title_top", ((SwitchMaterial)v.findViewById(R.id.switchTitlePosition)).isChecked());
+        e.putInt(prefix + "text_size", ((SeekBar)v.findViewById(R.id.seekBarTextSize)).getProgress());
+        e.putInt(prefix + "item_height", ((SeekBar)v.findViewById(R.id.seekBarItemHeight)).getProgress());
+        e.putBoolean(prefix + "night_mode", ((SwitchMaterial)v.findViewById(R.id.switchNightMode)).isChecked());
+        e.putBoolean(prefix + "pilot_mode", ((SwitchMaterial)v.findViewById(R.id.switchPilotMode)).isChecked());
+        e.putBoolean(prefix + "hide_extension", ((SwitchMaterial)v.findViewById(R.id.switchHideExtension)).isChecked());
+
+        if (modeIdx != -1) {
+            boolean enabled = ((SwitchMaterial)v.findViewById(R.id.switchModeEnabled)).isChecked();
+            String name = ((TextInputEditText)v.findViewById(R.id.editModeName)).getText().toString();
+            
+            userModes.get(modeIdx).enabled = enabled;
+            userModes.get(modeIdx).name = name;
+            userModes.get(modeIdx).folder = ((TextInputEditText)v.findViewById(R.id.editDefaultFolder)).getText().toString();
+            
+            e.putBoolean("mode_" + modeIdx + "_enabled", enabled);
+            e.putString("mode_" + modeIdx + "_name", name);
+            e.putString("mode_" + modeIdx + "_folder", userModes.get(modeIdx).folder);
+        }
+        e.apply();
     }
 
     private void actualizarTextosDialogo(View v) {
+        ((TextView) v.findViewById(R.id.lblEditMode)).setText(R.string.config_edit_mode);
+        ((SwitchMaterial) v.findViewById(R.id.switchModeEnabled)).setText(R.string.config_mode_enabled);
+        ((com.google.android.material.textfield.TextInputLayout) v.findViewById(R.id.tilModeName)).setHint(getString(R.string.config_mode_name_hint));
+
         ((TextView) v.findViewById(R.id.lblGeneral)).setText(R.string.config_general);
         ((com.google.android.material.textfield.TextInputLayout) v.findViewById(R.id.tilDefaultFolder)).setHint(getString(R.string.config_default_folder));
         ((TextView) v.findViewById(R.id.lblLanguage)).setText(R.string.config_language);

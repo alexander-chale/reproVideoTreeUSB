@@ -26,4 +26,8 @@
     <string name="msg_usb_detected">Dispositivo detectado, actualizando...</string>
     <string name="msg_unsupported_file">Archivo no compatible, saltando...</string>
     <string name="msg_returning_home">Regresando al inicio...</string>
+    <string name="config_edit_mode">EDITAR MODO:</string>
+    <string name="config_mode_enabled">Activar este botón en barra</string>
+    <string name="config_mode_name_hint">Nombre del Botón (Modo)</string>
+    <string name="config_mode_conductor">CONDUCTOR (GLOBAL)</string>
 </resources>

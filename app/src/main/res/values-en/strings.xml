@@ -26,4 +26,8 @@
     <string name="msg_usb_detected">Device detected, updating...</string>
     <string name="msg_unsupported_file">Unsupported file, skipping...</string>
     <string name="msg_returning_home">Returning home...</string>
+    <string name="config_edit_mode">EDIT MODE:</string>
+    <string name="config_mode_enabled">Enable this button in bar</string>
+    <string name="config_mode_name_hint">Button Name (Mode)</string>
+    <string name="config_mode_conductor">CONDUCTOR (GLOBAL)</string>
 </resources>
