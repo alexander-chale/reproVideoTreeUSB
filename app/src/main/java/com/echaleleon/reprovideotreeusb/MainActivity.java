@@ -112,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnScreenOff;
     private RelativeLayout capaPantallaApagada;
     private TextView txtMusicTitle;
+    private TextView txtMusicArtist, txtMusicAlbum, txtMusicYear, txtMusicGenre, txtMusicFile, txtMusicBitrate;
     private ImageView imgAlbumArt;
     private boolean isScreenOffMode = false;
     private long tiempoPrimerClickAtras = 0;
@@ -151,6 +152,12 @@ public class MainActivity extends AppCompatActivity {
         btnScreenOff = findViewById(R.id.btnScreenOff);
         capaPantallaApagada = findViewById(R.id.capaPantallaApagada);
         txtMusicTitle = findViewById(R.id.txtMusicTitle);
+        txtMusicArtist = findViewById(R.id.txtMusicArtist);
+        txtMusicAlbum = findViewById(R.id.txtMusicAlbum);
+        txtMusicYear = findViewById(R.id.txtMusicYear);
+        txtMusicGenre = findViewById(R.id.txtMusicGenre);
+        txtMusicFile = findViewById(R.id.txtMusicFile);
+        txtMusicBitrate = findViewById(R.id.txtMusicBitrate);
         imgAlbumArt = findViewById(R.id.imgAlbumArt);
 
         SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
@@ -288,18 +295,24 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     String nombreArchivo = Uri.decode(new File(uriStr).getName());
                     boolean isAudio = isAudioFile(uriStr);
+                    
+                    // Actualizar metadatos siempre por si acaso
+                    String path = mediaItem.localConfiguration.uri.getPath();
+                    if (path != null) cargarMetadatosAudio(new File(path));
+
                     if (isAudio) {
                         capaPantallaApagada.setVisibility(View.VISIBLE);
                         iniciarAnimacionBarras();
-                        String path = mediaItem.localConfiguration.uri.getPath();
-                        if (path != null) cargarMetadatosAudio(new File(path));
                     } else {
-                        if (imgAlbumArt != null) {
-                            imgAlbumArt.setImageResource(R.drawable.ic_minimal_player);
-                            imgAlbumArt.setPadding(40, 40, 40, 40);
+                        if (!isScreenOffMode) {
+                            capaPantallaApagada.setVisibility(View.GONE);
+                            if (imgAlbumArt != null) {
+                                imgAlbumArt.setImageResource(R.drawable.ic_home_custom);
+                            }
+                        } else {
+                            capaPantallaApagada.setVisibility(View.VISIBLE);
+                            iniciarAnimacionBarras();
                         }
-                        capaPantallaApagada.setVisibility(isScreenOffMode ? View.VISIBLE : View.GONE);
-                        if (isScreenOffMode) iniciarAnimacionBarras();
                         mostrarNombreVideo(nombreArchivo);
                     }
                     mostrarFeedback(0, android.view.Gravity.CENTER);
@@ -504,7 +517,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean isAudioFile(String p) {
         if (p == null) return false;
         String l = p.toLowerCase();
-        return l.endsWith(".mp3") || l.contains(".mp3?") || l.contains(".mp3/");
+        return l.endsWith(".mp3") || l.endsWith(".m4a") || l.endsWith(".wav") || l.endsWith(".flac") || 
+               l.contains(".mp3?") || l.contains(".mp3/");
     }
 
     private String getFileNameToDisplay(String n) {
@@ -622,18 +636,41 @@ public class MainActivity extends AppCompatActivity {
             retriever.setDataSource(file.getAbsolutePath());
             String title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
             String artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-            txtMusicTitle.setText(title != null ? title + (artist != null ? " - " + artist : "") : getFileNameToDisplay(file.getName()));
+            String album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
+            String year = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR);
+            String genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE);
+            String bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
+
+            txtMusicTitle.setText("TRACK: " + (title != null ? title : getFileNameToDisplay(file.getName())));
+            txtMusicArtist.setText("ARTIST: " + (artist != null ? artist : "-"));
+            txtMusicAlbum.setText("ALBUM: " + (album != null ? album : "-"));
+            txtMusicYear.setText("YEAR: " + (year != null ? year : "-"));
+            txtMusicGenre.setText("GENRE: " + (genre != null ? genre : "-"));
+            txtMusicFile.setText("FILE: " + file.getName());
+            
+            if (bitrate != null) {
+                try {
+                    int kbps = Integer.parseInt(bitrate) / 1000;
+                    txtMusicBitrate.setText("BITRATE: " + kbps + " KBPS");
+                } catch (Exception e) { txtMusicBitrate.setText("BITRATE: -"); }
+            } else {
+                txtMusicBitrate.setText("BITRATE: -");
+            }
+
             byte[] art = retriever.getEmbeddedPicture();
             if (art != null) {
                 imgAlbumArt.setImageBitmap(android.graphics.BitmapFactory.decodeByteArray(art, 0, art.length));
-                imgAlbumArt.setPadding(0, 0, 0, 0); imgAlbumArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                imgAlbumArt.setPadding(0, 0, 0, 0);
             } else {
-                imgAlbumArt.setImageResource(R.drawable.ic_minimal_player);
-                imgAlbumArt.setPadding(40, 40, 40, 40); imgAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                imgAlbumArt.setImageResource(R.drawable.ic_home_custom);
+                imgAlbumArt.setPadding(40, 40, 40, 40);
             }
         } catch (Exception e) {
-            txtMusicTitle.setText(getFileNameToDisplay(file.getName()));
-            imgAlbumArt.setImageResource(R.drawable.ic_minimal_player);
+            txtMusicTitle.setText("TRACK: " + getFileNameToDisplay(file.getName()));
+            txtMusicArtist.setText("ARTIST: -");
+            txtMusicAlbum.setText("ALBUM: -");
+            txtMusicFile.setText("FILE: " + file.getName());
+            imgAlbumArt.setImageResource(R.drawable.ic_home_custom);
         } finally { try { retriever.release(); } catch (Exception ignored) {} }
     }
 
@@ -844,20 +881,44 @@ public class MainActivity extends AppCompatActivity {
         handlerSeek.post(runnableSeek);
     }
 
+    private final android.os.Handler visualizerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable visualizerRunnable;
+
     private void iniciarAnimacionBarras() {
-        if (capaPantallaApagada.getVisibility() == View.GONE) return;
-        View[] b = {findViewById(R.id.bar1), findViewById(R.id.bar2), findViewById(R.id.bar3), findViewById(R.id.bar4), findViewById(R.id.bar5), findViewById(R.id.bar6), findViewById(R.id.bar7)};
-        android.os.Handler h = new android.os.Handler();
-        Runnable r = new Runnable() {
+        if (capaPantallaApagada.getVisibility() == View.GONE) {
+            visualizerHandler.removeCallbacks(visualizerRunnable);
+            return;
+        }
+        if (visualizerRunnable != null) return; // Ya está corriendo
+
+        View[] bars = {findViewById(R.id.bar1), findViewById(R.id.bar2), findViewById(R.id.bar3), 
+                       findViewById(R.id.bar4), findViewById(R.id.bar5), findViewById(R.id.bar6), 
+                       findViewById(R.id.bar7)};
+        
+        visualizerRunnable = new Runnable() {
+            private final java.util.Random rnd = new java.util.Random();
             @Override public void run() {
-                if (capaPantallaApagada.getVisibility() == View.GONE || contenedorVideo.getVisibility() == View.GONE) return;
-                if (!exoPlayer.isPlaying()) { h.postDelayed(this, 500); return; }
-                java.util.Random rnd = new java.util.Random();
-                for (View v : b) { if (v != null) { android.view.ViewGroup.LayoutParams lp = v.getLayoutParams(); lp.height = (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, rnd.nextInt(50) + 10, getResources().getDisplayMetrics()); v.setLayoutParams(lp); } }
-                h.postDelayed(this, 100);
+                if (capaPantallaApagada.getVisibility() == View.GONE || contenedorVideo.getVisibility() == View.GONE) {
+                    visualizerRunnable = null;
+                    return;
+                }
+                if (exoPlayer.isPlaying()) {
+                    for (View v : bars) {
+                        if (v != null) {
+                            android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
+                            lp.height = (int) android.util.TypedValue.applyDimension(
+                                android.util.TypedValue.COMPLEX_UNIT_DIP, 
+                                rnd.nextInt(60) + 15, // Rango de 15 a 75dp
+                                getResources().getDisplayMetrics()
+                            );
+                            v.setLayoutParams(lp);
+                        }
+                    }
+                }
+                visualizerHandler.postDelayed(this, 120);
             }
         };
-        h.post(r);
+        visualizerHandler.post(visualizerRunnable);
     }
 
     private void reproducirCarpetaAnteriorGlobal() {
