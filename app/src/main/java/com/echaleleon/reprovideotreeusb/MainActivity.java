@@ -95,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
     private LinearLayout contenedorExplorador;
     private LinearLayout layoutBarraInferior;
+    private LinearLayout layoutBarraSuperior;
 
     private List<File> archivosEnCarpetaActual = new ArrayList<>();
     private List<File> videosEnReproduccionActual = new ArrayList<>();
@@ -169,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
         listViewArchivos = findViewById(R.id.listViewArchivos);
         contenedorExplorador = findViewById(R.id.contenedorExplorador);
         layoutBarraInferior = findViewById(R.id.layoutBarraInferior);
+        layoutBarraSuperior = findViewById(R.id.layoutBarraSuperior);
         btnConfiguracion = findViewById(R.id.btnConfiguracion);
         layoutBotonesModos = findViewById(R.id.layoutBotonesModos);
         btnInicio = findViewById(R.id.btnInicio);
@@ -475,17 +477,18 @@ public class MainActivity extends AppCompatActivity {
     private void loadUserModes() {
         SharedPreferences p = getSharedPreferences("config_repro", MODE_PRIVATE);
         userModes.clear();
-        for (int i = 0; i < 3; i++) {
-            String name = p.getString("mode_" + i + "_name", "Niños " + (i + 1));
+        String[] defaultNames = {"Niño 1", "Niño 2", "Esposa", "Madre", "Invitado"};
+        for (int i = 0; i < 5; i++) {
+            String name = p.getString("mode_" + i + "_name", defaultNames[i]);
             String folder = p.getString("mode_" + i + "_folder", "");
-            boolean enabled = p.getBoolean("mode_" + i + "_enabled", i == 0); // Solo el primero activo por defecto
+            boolean enabled = p.getBoolean("mode_" + i + "_enabled", false);
             userModes.add(new UserMode(name, folder, enabled));
         }
     }
 
     private void saveUserModes() {
         SharedPreferences.Editor e = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             UserMode m = userModes.get(i);
             e.putString("mode_" + i + "_name", m.name);
             e.putString("mode_" + i + "_folder", m.folder);
@@ -585,9 +588,13 @@ public class MainActivity extends AppCompatActivity {
         if (btnInicio != null) btnInicio.setColorFilter(textColor);
         if (btnScreenOff != null) btnScreenOff.setColorFilter(isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : textColor);
 
-        listViewArchivos.setVisibility(View.VISIBLE); txtRutaActual.setVisibility(View.VISIBLE);
-        contenedorExplorador.setVisibility(View.VISIBLE); contenedorVideo.setVisibility(View.GONE);
-        capaZonasToque.setVisibility(View.GONE); mostrarBarrasSistema();
+        listViewArchivos.setVisibility(View.VISIBLE); 
+        txtRutaActual.setVisibility(View.VISIBLE);
+        if (layoutBarraSuperior != null) layoutBarraSuperior.setVisibility(View.VISIBLE);
+        contenedorExplorador.setVisibility(View.VISIBLE); 
+        contenedorVideo.setVisibility(View.GONE);
+        capaZonasToque.setVisibility(View.GONE); 
+        mostrarBarrasSistema();
     }
 
     private void actualizarEstadoCarpeta(File nuevaCarpeta) {
@@ -917,24 +924,78 @@ public class MainActivity extends AppCompatActivity {
         SwitchMaterial swE = view.findViewById(R.id.switchHideExtension);
         Spinner spLang = view.findViewById(R.id.spinnerLanguage);
 
-        // Nombres para el selector de edición
-        String[] modoNames = {getString(R.string.config_mode_conductor), userModes.get(0).name, userModes.get(1).name, userModes.get(2).name};
-        ArrayAdapter<String> adapterModos = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, modoNames);
+        // Nombres para el selector de edición: Solo los habilitados + Conductor
+        List<String> modoNamesList = new ArrayList<>();
+        modoNamesList.add(getString(R.string.config_mode_conductor));
+        final List<Integer> modeIndicesMap = new ArrayList<>();
+        modeIndicesMap.add(-1);
+
+        for (int i = 0; i < userModes.size(); i++) {
+            if (userModes.get(i).enabled || i == activeModeIndex) {
+                modoNamesList.add(userModes.get(i).name);
+                modeIndicesMap.add(i);
+            }
+        }
+        
+        // Si estamos en Conductor y queremos ver TODOS para activarlos, 
+        // necesitamos una forma de activar/desactivar modos.
+        // El usuario dijo "seleccionable con un checkbox", tal vez se refiere a una lista de checkboxes para habilitar modos.
+        
+        ArrayAdapter<String> adapterModos = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, modoNamesList);
         adapterModos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spEditMode.setAdapter(adapterModos);
-        spEditMode.setSelection(editingModeIndex + 1);
+        
+        // Buscar la posición actual en el spinner filtrado
+        int selectedPos = 0;
+        for (int i = 0; i < modeIndicesMap.size(); i++) {
+            if (modeIndicesMap.get(i) == editingModeIndex) {
+                selectedPos = i;
+                break;
+            }
+        }
+        spEditMode.setSelection(selectedPos);
 
         cargarDatosEnDialogo(view, editingModeIndex);
 
         spEditMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
-                editingModeIndex = position - 1;
+                editingModeIndex = modeIndicesMap.get(position);
                 layoutModeDetail.setVisibility(editingModeIndex == -1 ? View.GONE : View.VISIBLE);
                 cargarDatosEnDialogo(view, editingModeIndex);
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
+
+        // Para poder habilitar/deshabilitar modos, necesitamos que el modo Conductor 
+        // muestre la lista de modos con sus checkboxes.
+        LinearLayout layoutCheckboxesModos = new LinearLayout(this);
+        layoutCheckboxesModos.setOrientation(LinearLayout.VERTICAL);
+        layoutCheckboxesModos.setPadding(0, 20, 0, 20);
+        
+        TextView lblModosVisibles = new TextView(this);
+        lblModosVisibles.setText("MODOS VISIBLES EN BARRA:");
+        lblModosVisibles.setTextSize(11);
+        lblModosVisibles.setTypeface(null, android.graphics.Typeface.BOLD);
+        lblModosVisibles.setTextColor(configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#666666"));
+        layoutCheckboxesModos.addView(lblModosVisibles);
+
+        for (int i = 0; i < userModes.size(); i++) {
+            UserMode m = userModes.get(i);
+            android.widget.CheckBox cb = new android.widget.CheckBox(this);
+            cb.setText(m.name);
+            cb.setChecked(m.enabled);
+            cb.setTextColor(configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK);
+            final int idx = i;
+            cb.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                userModes.get(idx).enabled = isChecked;
+            });
+            layoutCheckboxesModos.addView(cb);
+        }
+        
+        // Añadir los checkboxes al inicio de la configuración si es modo Conductor
+        // o en una sección específica.
+        ((LinearLayout)view.findViewById(R.id.layoutGeneral)).addView(layoutCheckboxesModos, 0);
 
         // Idiomas
         String[] languages = {"Español", "English"};
@@ -978,6 +1039,7 @@ public class MainActivity extends AppCompatActivity {
             .setView(view)
             .setPositiveButton(R.string.config_save, (d, w) -> {
                 guardarDatosDesdeDialogo(view, editingModeIndex);
+                saveUserModes(); // Guardar el estado de enabled
                 if (editingModeIndex == activeModeIndex) cargarConfiguracionActual();
                 
                 SharedPreferences.Editor e = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
@@ -989,6 +1051,7 @@ public class MainActivity extends AppCompatActivity {
             })
             .setNegativeButton(R.string.config_cancel, (d, w) -> {
                 if (!oldL.equals(configLanguage)) { configLanguage = oldL; setLocale(configLanguage); }
+                loadUserModes(); // Revertir cambios en enabled
                 cargarConfiguracionActual();
             }).show();
     }
@@ -1066,6 +1129,7 @@ public class MainActivity extends AppCompatActivity {
         int txt = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
         root.setBackgroundColor(bg); if (contenedorExplorador != null) contenedorExplorador.setBackgroundColor(bg);
         if (layoutBarraInferior != null) layoutBarraInferior.setBackgroundColor(bar);
+        if (layoutBarraSuperior != null) layoutBarraSuperior.setBackgroundColor(bar);
         if (txtRutaActual != null) txtRutaActual.setTextColor(txt);
         if (btnConfiguracion != null) btnConfiguracion.setColorFilter(txt);
         if (btnInicio != null) btnInicio.setColorFilter(txt);
