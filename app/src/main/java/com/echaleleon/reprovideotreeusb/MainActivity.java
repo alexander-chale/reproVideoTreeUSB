@@ -436,8 +436,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void navegarACarpeta(File nuevaCarpeta) {
         if (nuevaCarpeta == null || !nuevaCarpeta.exists()) return;
-        carpetaReproduciendoActualmente = nuevaCarpeta;
-        txtRutaActual.setText("Ruta: " + nuevaCarpeta.getAbsolutePath());
+        actualizarEstadoCarpeta(nuevaCarpeta);
+
         int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
         txtRutaActual.setTextColor(textColor);
         if (btnConfiguracion != null) btnConfiguracion.setColorFilter(textColor);
@@ -447,6 +447,11 @@ public class MainActivity extends AppCompatActivity {
         listViewArchivos.setVisibility(View.VISIBLE); txtRutaActual.setVisibility(View.VISIBLE);
         contenedorExplorador.setVisibility(View.VISIBLE); contenedorVideo.setVisibility(View.GONE);
         capaZonasToque.setVisibility(View.GONE); mostrarBarrasSistema();
+    }
+
+    private void actualizarEstadoCarpeta(File nuevaCarpeta) {
+        carpetaReproduciendoActualmente = nuevaCarpeta;
+        txtRutaActual.setText("Ruta: " + nuevaCarpeta.getAbsolutePath());
 
         archivosEnCarpetaActual.clear();
         File[] lista = nuevaCarpeta.listFiles();
@@ -480,6 +485,15 @@ public class MainActivity extends AppCompatActivity {
                 return v;
             }
         });
+    }
+
+    private boolean tieneVideos(File carpeta) {
+        File[] contenido = carpeta.listFiles();
+        if (contenido == null) return false;
+        for (File f : contenido) {
+            if (f.isFile() && esVideo(f.getName())) return true;
+        }
+        return false;
     }
 
     private boolean esVideo(String n) {
@@ -547,20 +561,36 @@ public class MainActivity extends AppCompatActivity {
             for (File h : hermanos) carpetas.add(h);
             Collections.sort(carpetas, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
             int idx = carpetas.indexOf(carpetaReproduciendoActualmente);
+            
             File sig = null;
-            if (idx != -1 && idx + 1 < carpetas.size()) sig = carpetas.get(idx + 1);
-            else {
-                Toast.makeText(this, "Has llegado al final. Volviendo a la primera carpeta.", Toast.LENGTH_LONG).show();
-                if (!carpetas.isEmpty()) sig = carpetas.get(0);
-            }
-            if (sig != null) {
-                navegarACarpeta(sig);
-                contenedorExplorador.setVisibility(View.GONE); contenedorVideo.setVisibility(View.VISIBLE);
-                capaZonasToque.setVisibility(View.VISIBLE);
-                txtRutaActual.setVisibility(View.GONE); listViewArchivos.setVisibility(View.GONE);
-                for (File f : archivosEnCarpetaActual) {
-                    if (!f.isDirectory() && esVideo(f.getName())) { reproducirVideosDeCarpeta(f, sig); break; }
+            // Buscar hacia adelante una carpeta con videos/musica
+            for (int i = 1; i <= carpetas.size(); i++) {
+                int nextIdx = (idx + i) % carpetas.size();
+                File temp = carpetas.get(nextIdx);
+                if (tieneVideos(temp)) {
+                    sig = temp;
+                    break;
                 }
+                if (nextIdx == idx) break;
+            }
+
+            if (sig != null) {
+                actualizarEstadoCarpeta(sig);
+                contenedorExplorador.setVisibility(View.GONE); 
+                contenedorVideo.setVisibility(View.VISIBLE);
+                capaZonasToque.setVisibility(View.VISIBLE);
+                txtRutaActual.setVisibility(View.GONE); 
+                listViewArchivos.setVisibility(View.GONE);
+                ocultarBarrasSistema();
+                
+                for (File f : archivosEnCarpetaActual) {
+                    if (!f.isDirectory() && esVideo(f.getName())) { 
+                        reproducirVideosDeCarpeta(f, sig); 
+                        break; 
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Has llegado al final de todas las carpetas.", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -612,6 +642,13 @@ public class MainActivity extends AppCompatActivity {
         String n = getFileNameToDisplay(nombre);
         txtNombreVideo.setText(n);
         if (txtMusicTitle != null) txtMusicTitle.setText(n);
+        
+        // Si estamos en modo audio (capa visible) o es un archivo de audio, no mostramos el flotante arriba/abajo
+        if ((capaPantallaApagada != null && capaPantallaApagada.getVisibility() == View.VISIBLE) || isAudioFile(nombre)) {
+            txtNombreVideo.setVisibility(View.GONE);
+            return;
+        }
+        
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) txtNombreVideo.getLayoutParams();
         if (configTitleTop) { lp.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL; lp.topMargin = (int)(20*getResources().getDisplayMetrics().density); lp.bottomMargin = 0; }
         else { lp.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL; lp.bottomMargin = (int)(120*getResources().getDisplayMetrics().density); lp.topMargin = 0; }
@@ -832,10 +869,33 @@ public class MainActivity extends AppCompatActivity {
                 List<File> list = new ArrayList<>(); for (File h : hermanos) list.add(h);
                 Collections.sort(list, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
                 int idx = list.indexOf(carpetaReproduciendoActualmente);
-                if (idx > 0) {
-                    File ant = list.get(idx - 1); navegarACarpeta(ant);
-                    contenedorExplorador.setVisibility(View.GONE); contenedorVideo.setVisibility(View.VISIBLE); capaZonasToque.setVisibility(View.VISIBLE);
-                    File ult = null; for (int i = archivosEnCarpetaActual.size()-1; i>=0; i--) { File f = archivosEnCarpetaActual.get(i); if (!f.isDirectory() && esVideo(f.getName())) { ult = f; break; } }
+                
+                File ant = null;
+                // Buscar hacia atrás una carpeta con contenido reproducible
+                for (int i = 1; i <= list.size(); i++) {
+                    int prevIdx = (idx - i + list.size()) % list.size();
+                    File temp = list.get(prevIdx);
+                    if (tieneVideos(temp)) {
+                        ant = temp;
+                        break;
+                    }
+                    if (prevIdx == idx) break;
+                }
+
+                if (ant != null) {
+                    actualizarEstadoCarpeta(ant);
+                    contenedorExplorador.setVisibility(View.GONE); 
+                    contenedorVideo.setVisibility(View.VISIBLE); 
+                    capaZonasToque.setVisibility(View.VISIBLE);
+                    txtRutaActual.setVisibility(View.GONE); 
+                    listViewArchivos.setVisibility(View.GONE);
+                    ocultarBarrasSistema();
+                    
+                    File ult = null; 
+                    for (int i = archivosEnCarpetaActual.size()-1; i>=0; i--) { 
+                        File f = archivosEnCarpetaActual.get(i); 
+                        if (!f.isDirectory() && esVideo(f.getName())) { ult = f; break; } 
+                    }
                     if (ult != null) reproducirVideosDeCarpeta(ult, ant);
                 }
             }
