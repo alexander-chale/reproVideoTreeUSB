@@ -970,6 +970,28 @@ public class MainActivity extends AppCompatActivity {
         if (hasFocus && contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE) ocultarBarrasSistema();
     }
 
+    private <T> ArrayAdapter<T> createThemedAdapter(T[] items) {
+        int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
+        int dropdownBg = configNightMode ? android.graphics.Color.parseColor("#1A1A1A") : android.graphics.Color.WHITE;
+        
+        return new ArrayAdapter<T>(this, android.R.layout.simple_spinner_item, items) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                View v = super.getView(position, convertView, parent);
+                if (v instanceof TextView) ((TextView) v).setTextColor(textColor);
+                return v;
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+                View v = super.getDropDownView(position, convertView, parent);
+                if (v instanceof TextView) ((TextView) v).setTextColor(textColor);
+                v.setBackgroundColor(dropdownBg);
+                return v;
+            }
+        };
+    }
+
     private int editingModeIndex = -1; // -1: Conductor, 0-2: Modos
 
     private void mostrarDialogoConfiguracion() {
@@ -1009,7 +1031,7 @@ public class MainActivity extends AppCompatActivity {
         // necesitamos una forma de activar/desactivar modos.
         // El usuario dijo "seleccionable con un checkbox", tal vez se refiere a una lista de checkboxes para habilitar modos.
         
-        ArrayAdapter<String> adapterModos = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, modoNamesList);
+        ArrayAdapter<String> adapterModos = createThemedAdapter(modoNamesList.toArray(new String[0]));
         adapterModos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spEditMode.setAdapter(adapterModos);
         
@@ -1068,7 +1090,7 @@ public class MainActivity extends AppCompatActivity {
         // Idiomas
         String[] languages = {"Español", "English"};
         String[] langCodes = {"es", "en"};
-        ArrayAdapter<String> langAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languages);
+        ArrayAdapter<String> langAdapter = createThemedAdapter(languages);
         langAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spLang.setAdapter(langAdapter);
         int currentLangPos = 0;
