@@ -423,6 +423,19 @@
             android:visibility="gone"
             android:elevation="25dp" />
 
+        <!-- Icono de Candado -->
+        <ImageView
+            android:id="@+id/imgLockStatus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="16dp"
+            android:src="@android:drawable/ic_lock_lock"
+            app:tint="#80FFFFFF"
+            android:visibility="gone"
+            android:elevation="30dp"
+            android:contentDescription="Estado de Bloqueo" />
+
     </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

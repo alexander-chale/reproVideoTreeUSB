@@ -116,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
     private String configLanguage = "es";
     private int activeModeIndex = -1; // -1 es Conductor (Global)
     private List<UserMode> userModes = new ArrayList<>();
+    private boolean isLocked = false;
+    private ImageView imgLockStatus;
     
     private static class UserMode {
         String name;
@@ -184,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
         txtMusicFile = findViewById(R.id.txtMusicFile);
         txtMusicBitrate = findViewById(R.id.txtMusicBitrate);
         imgAlbumArt = findViewById(R.id.imgAlbumArt);
+        imgLockStatus = findViewById(R.id.imgLockStatus);
 
         configItemHeight = prefs.getInt("item_height", 100);
         configTextSize = prefs.getInt("text_size", 32);
@@ -374,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void configurarZonasToque() {
         zonaIzquierda.setOnTouchListener((v, event) -> {
+            if (isLocked) return true;
             int maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true; isSwipingVolume = false; startY = event.getY();
@@ -414,23 +418,32 @@ public class MainActivity extends AppCompatActivity {
         zonaCentro.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true; pressStartTime = System.currentTimeMillis();
-                mostrarFeedback(0, android.view.Gravity.CENTER);
+                if (!isLocked) mostrarFeedback(0, android.view.Gravity.CENTER);
                 handlerSeek.postDelayed(() -> {
-                    if (isUserHolding) { exoPlayer.stop(); escanearYRefrescar(); Toast.makeText(this, "Regresando al inicio...", Toast.LENGTH_SHORT).show(); }
+                    if (isUserHolding) {
+                        isLocked = !isLocked;
+                        imgLockStatus.setVisibility(isLocked ? View.VISIBLE : View.GONE);
+                        Toast.makeText(this, isLocked ? "PANTALLA BLOQUEADA" : "PANTALLA DESBLOQUEADA", Toast.LENGTH_SHORT).show();
+                        if (isLocked) {
+                            if (layoutProgreso != null) layoutProgreso.setVisibility(View.GONE);
+                            if (imgFeedback != null) imgFeedback.setVisibility(View.GONE);
+                        }
+                    }
                 }, 3000);
                 return true;
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 isUserHolding = false; handlerSeek.removeCallbacksAndMessages(null);
-                if (System.currentTimeMillis() - pressStartTime < 3000) {
+                if (!isLocked && System.currentTimeMillis() - pressStartTime < 3000) {
                     if (exoPlayer.isPlaying()) { exoPlayer.pause(); mostrarFeedback(android.R.drawable.ic_media_pause, android.view.Gravity.CENTER); }
                     else { exoPlayer.play(); mostrarFeedback(android.R.drawable.ic_media_play, android.view.Gravity.CENTER); }
-                } else mostrarFeedback(0, android.view.Gravity.CENTER);
+                } else if (!isLocked) mostrarFeedback(0, android.view.Gravity.CENTER);
                 return true;
             }
             return true;
         });
 
         zonaDerecha.setOnTouchListener((v, event) -> {
+            if (isLocked) return true;
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true; isSwipingBrightness = false; startY = event.getY();
                 float curBri = getWindow().getAttributes().screenBrightness;
@@ -627,9 +640,18 @@ public class MainActivity extends AppCompatActivity {
                 TextView t = v.findViewById(R.id.txtNombreCarpeta);
                 t.setTextColor(configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK);
                 t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, configTextSize);
-                android.view.ViewGroup.LayoutParams lp = t.getLayoutParams();
-                lp.height = (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, configItemHeight, getResources().getDisplayMetrics());
-                t.setLayoutParams(lp);
+                
+                // Forzar la altura del ítem completo
+                android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
+                if (lp == null) {
+                    lp = new android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, configItemHeight, getResources().getDisplayMetrics())
+                    );
+                } else {
+                    lp.height = (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_DIP, configItemHeight, getResources().getDisplayMetrics());
+                }
+                v.setLayoutParams(lp);
                 return v;
             }
         });
@@ -666,6 +688,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void reproducirVideosDeCarpeta(File videoInicial, File carpeta) {
         if (videoInicial == null || carpeta == null) return;
+        isLocked = false;
+        if (imgLockStatus != null) imgLockStatus.setVisibility(View.GONE);
         carpetaReproduciendoActualmente = carpeta;
         exoPlayer.stop(); exoPlayer.clearMediaItems();
         videosEnReproduccionActual.clear();
@@ -747,6 +771,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         if (contenedorVideo.getVisibility() == View.VISIBLE) {
+            if (isLocked) {
+                Toast.makeText(this, "Mantén presionado el centro para desbloquear", Toast.LENGTH_SHORT).show();
+                return;
+            }
             exoPlayer.stop(); contenedorVideo.setVisibility(View.GONE); capaZonasToque.setVisibility(View.GONE);
             contenedorExplorador.setVisibility(View.VISIBLE); listViewArchivos.setVisibility(View.VISIBLE);
             txtRutaActual.setVisibility(View.VISIBLE); mostrarBarrasSistema();
@@ -836,6 +864,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void mostrarFeedback(int resId, int gravity) {
+        if (isLocked) return;
         if (resId != 0) {
             imgFeedback.setImageResource(resId);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) imgFeedback.getLayoutParams();
@@ -1023,9 +1052,21 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { tvSkip.setText(Math.max(1, p) + " " + (configLanguage.equals("es") ? "segundos" : "seconds")); }
             @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
         });
+
+        sbText.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { configTextSize = Math.max(10, p); if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); }
+            @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
+        });
+
+        sbH.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { configItemHeight = Math.max(40, p); if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); }
+            @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
+        });
         
         swN.setOnCheckedChangeListener((bv, isC) -> { 
+            configNightMode = isC;
             actualizarColoresDialogo(view); 
+            aplicarTemaFondo();
         });
 
         actualizarColoresDialogo(view);
@@ -1050,6 +1091,9 @@ public class MainActivity extends AppCompatActivity {
                 if (!oldL.equals(configLanguage)) recreate();
             })
             .setNegativeButton(R.string.config_cancel, (d, w) -> {
+                configItemHeight = oldH;
+                configTextSize = oldT;
+                configNightMode = oldN;
                 if (!oldL.equals(configLanguage)) { configLanguage = oldL; setLocale(configLanguage); }
                 loadUserModes(); // Revertir cambios en enabled
                 cargarConfiguracionActual();
