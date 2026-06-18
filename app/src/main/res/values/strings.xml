@@ -1,13 +1,13 @@
 <resources>
     <string name="app_name">ReproVideoTreeUSB</string>
     <string name="label_ruta">Ruta: </string>
-    <string name="label_track">TRACK: </string>
-    <string name="label_artist">ARTIST: </string>
-    <string name="label_album">ALBUM: </string>
-    <string name="label_year">YEAR: </string>
-    <string name="label_genre">GENRE: </string>
+    <string name="label_track">PISTA: </string>
+    <string name="label_artist">ARTISTA: </string>
+    <string name="label_album">ÁLBUM: </string>
+    <string name="label_year">AÑO: </string>
+    <string name="label_genre">GÉNERO: </string>
     <string name="label_bitrate">BITRATE: </string>
-    <string name="label_file">FILE: </string>
+    <string name="label_file">ARCHIVO: </string>
     <string name="config_title">Configuración</string>
     <string name="config_save">Guardar</string>
     <string name="config_cancel">Cancelar</string>

@@ -659,20 +659,20 @@ public class MainActivity extends AppCompatActivity {
             String genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE);
             String bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
 
-            txtMusicTitle.setText(getString(R.string.label_track) + (title != null ? title : getFileNameToDisplay(file.getName())));
-            txtMusicArtist.setText(getString(R.string.label_artist) + (artist != null ? artist : "-"));
-            txtMusicAlbum.setText(getString(R.string.label_album) + (album != null ? album : "-"));
-            txtMusicYear.setText(getString(R.string.label_year) + (year != null ? year : "-"));
-            txtMusicGenre.setText(getString(R.string.label_genre) + (genre != null ? genre : "-"));
-            txtMusicFile.setText(getString(R.string.label_file) + file.getName());
+            txtMusicTitle.setText(getString(R.string.label_track) + "  " + (title != null ? title : getFileNameToDisplay(file.getName())));
+            txtMusicArtist.setText(getString(R.string.label_artist) + "  " + (artist != null ? artist : "-"));
+            txtMusicAlbum.setText(getString(R.string.label_album) + "  " + (album != null ? album : "-"));
+            txtMusicYear.setText(getString(R.string.label_year) + "  " + (year != null ? year : "-"));
+            txtMusicGenre.setText(getString(R.string.label_genre) + "  " + (genre != null ? genre : "-"));
+            txtMusicFile.setText(getString(R.string.label_file) + "  " + file.getName());
             
             if (bitrate != null) {
                 try {
                     int kbps = Integer.parseInt(bitrate) / 1000;
-                    txtMusicBitrate.setText(getString(R.string.label_bitrate) + kbps + " KBPS");
-                } catch (Exception e) { txtMusicBitrate.setText(getString(R.string.label_bitrate) + "-"); }
+                    txtMusicBitrate.setText(getString(R.string.label_bitrate) + "  " + kbps + " KBPS");
+                } catch (Exception e) { txtMusicBitrate.setText(getString(R.string.label_bitrate) + "  -"); }
             } else {
-                txtMusicBitrate.setText(getString(R.string.label_bitrate) + "-");
+                txtMusicBitrate.setText(getString(R.string.label_bitrate) + "  -");
             }
 
             byte[] art = retriever.getEmbeddedPicture();
