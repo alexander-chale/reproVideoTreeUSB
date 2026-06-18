@@ -35,6 +35,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import android.widget.Spinner;
+import android.widget.AdapterView;
+import java.util.Locale;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import androidx.appcompat.app.AlertDialog;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -107,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean configNightMode = true;
     private boolean configPilotMode = false;
     private boolean configHideExtension = false;
+    private String configLanguage = "es";
     
     private ImageButton btnInicio;
     private ImageButton btnScreenOff;
@@ -139,6 +145,10 @@ public class MainActivity extends AppCompatActivity {
     @androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
+        configLanguage = prefs.getString("language", "es");
+        setLocale(configLanguage);
+
         super.onCreate(savedInstanceState);
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
@@ -160,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
         txtMusicBitrate = findViewById(R.id.txtMusicBitrate);
         imgAlbumArt = findViewById(R.id.imgAlbumArt);
 
-        SharedPreferences prefs = getSharedPreferences("config_repro", MODE_PRIVATE);
         configItemHeight = prefs.getInt("item_height", 100);
         configTextSize = prefs.getInt("text_size", 32);
         configDefaultFolder = prefs.getString("default_folder", "Videos Musicales");
@@ -447,6 +456,15 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Dar Permiso", (dialog, which) -> solicitarPermisoEspecial()).setCancelable(false).show();
     }
 
+    private void setLocale(String lang) {
+        Locale locale = new Locale(lang);
+        Locale.setDefault(locale);
+        Resources resources = getResources();
+        Configuration config = resources.getConfiguration();
+        config.setLocale(locale);
+        resources.updateConfiguration(config, resources.getDisplayMetrics());
+    }
+
     private void navegarACarpeta(File nuevaCarpeta) {
         if (nuevaCarpeta == null || !nuevaCarpeta.exists()) return;
         actualizarEstadoCarpeta(nuevaCarpeta);
@@ -464,7 +482,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void actualizarEstadoCarpeta(File nuevaCarpeta) {
         carpetaReproduciendoActualmente = nuevaCarpeta;
-        txtRutaActual.setText("Ruta: " + nuevaCarpeta.getAbsolutePath());
+        txtRutaActual.setText(getString(R.string.label_ruta) + nuevaCarpeta.getAbsolutePath());
 
         archivosEnCarpetaActual.clear();
         File[] lista = nuevaCarpeta.listFiles();
@@ -641,20 +659,20 @@ public class MainActivity extends AppCompatActivity {
             String genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE);
             String bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE);
 
-            txtMusicTitle.setText("TRACK: " + (title != null ? title : getFileNameToDisplay(file.getName())));
-            txtMusicArtist.setText("ARTIST: " + (artist != null ? artist : "-"));
-            txtMusicAlbum.setText("ALBUM: " + (album != null ? album : "-"));
-            txtMusicYear.setText("YEAR: " + (year != null ? year : "-"));
-            txtMusicGenre.setText("GENRE: " + (genre != null ? genre : "-"));
-            txtMusicFile.setText("FILE: " + file.getName());
+            txtMusicTitle.setText(getString(R.string.label_track) + (title != null ? title : getFileNameToDisplay(file.getName())));
+            txtMusicArtist.setText(getString(R.string.label_artist) + (artist != null ? artist : "-"));
+            txtMusicAlbum.setText(getString(R.string.label_album) + (album != null ? album : "-"));
+            txtMusicYear.setText(getString(R.string.label_year) + (year != null ? year : "-"));
+            txtMusicGenre.setText(getString(R.string.label_genre) + (genre != null ? genre : "-"));
+            txtMusicFile.setText(getString(R.string.label_file) + file.getName());
             
             if (bitrate != null) {
                 try {
                     int kbps = Integer.parseInt(bitrate) / 1000;
-                    txtMusicBitrate.setText("BITRATE: " + kbps + " KBPS");
-                } catch (Exception e) { txtMusicBitrate.setText("BITRATE: -"); }
+                    txtMusicBitrate.setText(getString(R.string.label_bitrate) + kbps + " KBPS");
+                } catch (Exception e) { txtMusicBitrate.setText(getString(R.string.label_bitrate) + "-"); }
             } else {
-                txtMusicBitrate.setText("BITRATE: -");
+                txtMusicBitrate.setText(getString(R.string.label_bitrate) + "-");
             }
 
             byte[] art = retriever.getEmbeddedPicture();
@@ -771,6 +789,8 @@ public class MainActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.dialog_settings, null);
         final int oldH = configItemHeight, oldT = configTextSize;
         final boolean oldN = configNightMode, oldTi = configTitleTop, oldP = configPilotMode, oldE = configHideExtension;
+        final String oldL = configLanguage;
+
         TextInputEditText editF = view.findViewById(R.id.editDefaultFolder);
         SeekBar sbSkip = view.findViewById(R.id.seekBarSkipTime);
         TextView tvSkip = view.findViewById(R.id.txtValueSeek);
@@ -780,13 +800,36 @@ public class MainActivity extends AppCompatActivity {
         SwitchMaterial swN = view.findViewById(R.id.switchNightMode);
         SwitchMaterial swP = view.findViewById(R.id.switchPilotMode);
         SwitchMaterial swE = view.findViewById(R.id.switchHideExtension);
+        Spinner spLang = view.findViewById(R.id.spinnerLanguage);
 
-        editF.setText(configDefaultFolder); sbSkip.setProgress(configSeekSeconds); tvSkip.setText(configSeekSeconds + " segundos");
+        String[] languages = {"Español", "English"};
+        String[] langCodes = {"es", "en"};
+        ArrayAdapter<String> langAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languages);
+        langAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spLang.setAdapter(langAdapter);
+        int currentLangPos = 0;
+        for (int i=0; i<langCodes.length; i++) if (langCodes[i].equals(configLanguage)) currentLangPos = i;
+        spLang.setSelection(currentLangPos);
+
+        editF.setText(configDefaultFolder); sbSkip.setProgress(configSeekSeconds); tvSkip.setText(configSeekSeconds + " " + (configLanguage.equals("es") ? "segundos" : "seconds"));
         swTi.setChecked(configTitleTop); sbText.setProgress(configTextSize); sbH.setProgress(configItemHeight);
         swN.setChecked(configNightMode); swP.setChecked(configPilotMode); swE.setChecked(configHideExtension);
 
+        spLang.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
+                String newLang = langCodes[position];
+                if (!newLang.equals(configLanguage)) {
+                    configLanguage = newLang;
+                    setLocale(configLanguage);
+                    actualizarTextosDialogo(view);
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
         sbSkip.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { tvSkip.setText(Math.max(1, p) + " segundos"); }
+            @Override public void onProgressChanged(SeekBar sb, int p, boolean f) { tvSkip.setText(Math.max(1, p) + " " + (configLanguage.equals("es") ? "segundos" : "seconds")); }
             @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
         });
         sbText.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -798,23 +841,40 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onStartTrackingTouch(SeekBar sb) {} @Override public void onStopTrackingTouch(SeekBar sb) {}
         });
         swN.setOnCheckedChangeListener((bv, isC) -> { configNightMode = isC; aplicarTemaFondo(); actualizarColoresDialogo(view); if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); });
-        swTi.setOnCheckedChangeListener((bv, isC) -> { configTitleTop = isC; mostrarNombreVideo("Ejemplo de Posición"); });
+        swTi.setOnCheckedChangeListener((bv, isC) -> { configTitleTop = isC; mostrarNombreVideo(configLanguage.equals("es") ? "Ejemplo de Posición" : "Position Example"); });
         swP.setOnCheckedChangeListener((bv, isC) -> configPilotMode = isC);
         swE.setOnCheckedChangeListener((bv, isC) -> { configHideExtension = isC; if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente); });
 
         actualizarColoresDialogo(view);
-        new MaterialAlertDialogBuilder(this).setTitle("Configuración").setView(view).setPositiveButton("Guardar", (d, w) -> {
+        new MaterialAlertDialogBuilder(this).setTitle(R.string.config_title).setView(view).setPositiveButton(R.string.config_save, (d, w) -> {
             configDefaultFolder = editF.getText().toString(); configSeekSeconds = sbSkip.getProgress();
             SharedPreferences.Editor e = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
             e.putInt("item_height", configItemHeight); e.putInt("text_size", configTextSize);
             e.putString("default_folder", configDefaultFolder); e.putInt("seek_seconds", configSeekSeconds);
             e.putBoolean("title_top", configTitleTop); e.putBoolean("night_mode", configNightMode);
-            e.putBoolean("pilot_mode", configPilotMode); e.putBoolean("hide_extension", configHideExtension); e.apply();
-        }).setNegativeButton("Cancelar", (d, w) -> {
+            e.putBoolean("pilot_mode", configPilotMode); e.putBoolean("hide_extension", configHideExtension); 
+            e.putString("language", configLanguage); e.apply();
+            recreate();
+        }).setNegativeButton(R.string.config_cancel, (d, w) -> {
             configItemHeight = oldH; configTextSize = oldT; configNightMode = oldN; configTitleTop = oldTi; configPilotMode = oldP; configHideExtension = oldE;
+            if (!oldL.equals(configLanguage)) { configLanguage = oldL; setLocale(configLanguage); }
             aplicarTemaFondo(); if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
             if (contenedorVideo.getVisibility() == View.VISIBLE) mostrarNombreVideo(txtNombreVideo.getText().toString());
         }).show();
+    }
+
+    private void actualizarTextosDialogo(View v) {
+        ((TextView) v.findViewById(R.id.lblGeneral)).setText(R.string.config_general);
+        ((com.google.android.material.textfield.TextInputLayout) v.findViewById(R.id.tilDefaultFolder)).setHint(getString(R.string.config_default_folder));
+        ((TextView) v.findViewById(R.id.lblLanguage)).setText(R.string.config_language);
+        ((TextView) v.findViewById(R.id.lblSeekTime)).setText(R.string.config_seek_time);
+        ((SwitchMaterial) v.findViewById(R.id.switchNightMode)).setText(R.string.config_night_mode);
+        ((SwitchMaterial) v.findViewById(R.id.switchPilotMode)).setText(R.string.config_pilotMode);
+        ((TextView) v.findViewById(R.id.lblAppearance)).setText(R.string.config_appearance);
+        ((SwitchMaterial) v.findViewById(R.id.switchHideExtension)).setText(R.string.config_hide_extension);
+        ((SwitchMaterial) v.findViewById(R.id.switchTitlePosition)).setText(R.string.config_title_top);
+        ((TextView) v.findViewById(R.id.lblTextSize)).setText(R.string.config_text_size);
+        ((TextView) v.findViewById(R.id.lblItemHeight)).setText(R.string.config_item_height);
     }
 
     private void aplicarTemaFondo() {

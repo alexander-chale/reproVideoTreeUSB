@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">ReproVideoTreeUSB</string>
+    <string name="label_ruta">Path: </string>
+    <string name="label_track">TRACK: </string>
+    <string name="label_artist">ARTIST: </string>
+    <string name="label_album">ALBUM: </string>
+    <string name="label_year">YEAR: </string>
+    <string name="label_genre">GENRE: </string>
+    <string name="label_bitrate">BITRATE: </string>
+    <string name="label_file">FILE: </string>
+    <string name="config_title">Settings</string>
+    <string name="config_save">Save</string>
+    <string name="config_cancel">Cancel</string>
+    <string name="config_language">Language</string>
+    <string name="config_general">GENERAL</string>
+    <string name="config_appearance">APPEARANCE</string>
+    <string name="config_default_folder">Default initial folder</string>
+    <string name="config_seek_time">Seek time for long press</string>
+    <string name="config_title_top">Show title on top in videos</string>
+    <string name="config_text_size">Explorer text size</string>
+    <string name="config_item_height">Explorer row height</string>
+    <string name="config_night_mode">Dark Mode</string>
+    <string name="config_pilotMode">Pilot Mode (Invert side gestures)</string>
+    <string name="config_hide_extension">Hide file extensions</string>
+    <string name="msg_back_exit">Press back again to exit</string>
+    <string name="msg_usb_detected">Device detected, updating...</string>
+    <string name="msg_unsupported_file">Unsupported file, skipping...</string>
+    <string name="msg_returning_home">Returning home...</string>
+</resources>

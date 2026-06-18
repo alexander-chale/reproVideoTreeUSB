@@ -26,20 +26,22 @@
                 android:paddingEnd="8dp">
 
                 <TextView
+                    android:id="@+id/lblGeneral"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="GENERAL"
+                    android:text="@string/config_general"
                     android:textColor="#888888"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp"/>
 
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilDefaultFolder"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:hint="Carpeta Inicial"
+                    android:hint="@string/config_default_folder"
                     app:hintEnabled="true"
                     app:hintAnimationEnabled="true">
                     <com.google.android.material.textfield.TextInputEditText
@@ -52,9 +54,25 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
+                    android:id="@+id/lblLanguage"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Salto (seg)"
+                    android:text="@string/config_language"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="4dp"/>
+                <Spinner
+                    android:id="@+id/spinnerLanguage"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="12dp"
+                    android:backgroundTint="#BB86FC" />
+
+                <TextView
+                    android:id="@+id/lblSeekTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/config_seek_time"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
                 <LinearLayout
@@ -83,7 +101,7 @@
                     android:id="@+id/switchNightMode"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Modo Noche"
+                    android:text="@string/config_night_mode"
                     android:textSize="13sp"
                     android:minHeight="40dp" />
 
@@ -91,7 +109,7 @@
                     android:id="@+id/switchPilotMode"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Modo Piloto"
+                    android:text="@string/config_pilotMode"
                     android:textSize="13sp"
                     android:minHeight="40dp" />
             </LinearLayout>
@@ -105,9 +123,10 @@
                 android:paddingStart="8dp">
 
                 <TextView
+                    android:id="@+id/lblAppearance"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="APARIENCIA"
+                    android:text="@string/config_appearance"
                     android:textColor="#888888"
                     android:textSize="11sp"
                     android:textStyle="bold"
@@ -117,7 +136,7 @@
                     android:id="@+id/switchHideExtension"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Ocultar Ext."
+                    android:text="@string/config_hide_extension"
                     android:textSize="13sp"
                     android:minHeight="40dp" />
 
@@ -125,14 +144,15 @@
                     android:id="@+id/switchTitlePosition"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Título Arriba"
+                    android:text="@string/config_title_top"
                     android:textSize="13sp"
                     android:minHeight="40dp" />
 
                 <TextView
+                    android:id="@+id/lblTextSize"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tamaño Letra"
+                    android:text="@string/config_text_size"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:layout_marginTop="4dp"/>
@@ -145,9 +165,10 @@
                     android:thumbTint="#BB86FC" />
 
                 <TextView
+                    android:id="@+id/lblItemHeight"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Altura Item"
+                    android:text="@string/config_item_height"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:layout_marginTop="4dp"/>
