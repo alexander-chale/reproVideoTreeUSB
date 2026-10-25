@@ -360,6 +360,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
                 if (playbackState == Player.STATE_ENDED) {
+                    SharedPreferences.Editor e = getSharedPreferences("resume_prefs", MODE_PRIVATE).edit();
+                    e.putLong("last_video_pos", 0);
+                    e.apply();
                     reproducirSiguienteCarpetaGlobal();
                 } else if (playbackState == Player.STATE_READY) {
                     iniciarHilosProgreso();
@@ -387,11 +390,12 @@ public class MainActivity extends AppCompatActivity {
         zonaIzquierda.setOnTouchListener((v, event) -> {
             if (isLocked) return true;
             int maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            int leftIcon = configPilotMode ? android.R.drawable.ic_media_next : android.R.drawable.ic_media_previous;
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true; isSwipingVolume = false; startY = event.getY();
                 initialVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
                 pressStartTime = System.currentTimeMillis();
-                mostrarFeedback(0, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+                mostrarFeedback(leftIcon, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                 handlerSeek.postDelayed(() -> {
                     if (isUserHolding && !isSwipingVolume) {
                         int skipDir = configPilotMode ? 1 : -1;
@@ -404,6 +408,7 @@ public class MainActivity extends AppCompatActivity {
                 float deltaY = startY - event.getY();
                 if (Math.abs(deltaY) > 30) {
                     isSwipingVolume = true; handlerSeek.removeCallbacksAndMessages(null);
+                    if (imgFeedback != null) imgFeedback.setVisibility(View.GONE);
                     int volChange = (int) (deltaY / (v.getHeight() / (float)maxVol));
                     int newVol = Math.max(0, Math.min(maxVol, initialVolume + volChange));
                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0);
@@ -416,7 +421,8 @@ public class MainActivity extends AppCompatActivity {
                 if (!isSwipingVolume) {
                     if (System.currentTimeMillis() - pressStartTime < 3000) {
                         if (configPilotMode) irAlSiguienteVideo(); else irAlVideoAnterior();
-                    } else mostrarFeedback(0, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+                    }
+                    mostrarFeedback(leftIcon, android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
                 }
                 isSwipingVolume = false; return true;
             }
@@ -426,7 +432,10 @@ public class MainActivity extends AppCompatActivity {
         zonaCentro.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true; pressStartTime = System.currentTimeMillis();
-                if (!isLocked) mostrarFeedback(0, android.view.Gravity.CENTER);
+                if (!isLocked) {
+                    int centerIcon = (exoPlayer != null && exoPlayer.isPlaying()) ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play;
+                    mostrarFeedback(centerIcon, android.view.Gravity.CENTER);
+                }
                 handlerSeek.postDelayed(() -> {
                     if (isUserHolding) {
                         isLocked = !isLocked;
@@ -442,9 +451,14 @@ public class MainActivity extends AppCompatActivity {
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 isUserHolding = false; handlerSeek.removeCallbacksAndMessages(null);
                 if (!isLocked && System.currentTimeMillis() - pressStartTime < 3000) {
-                    if (exoPlayer.isPlaying()) { exoPlayer.pause(); mostrarFeedback(android.R.drawable.ic_media_pause, android.view.Gravity.CENTER); }
-                    else { exoPlayer.play(); mostrarFeedback(android.R.drawable.ic_media_play, android.view.Gravity.CENTER); }
-                } else if (!isLocked) mostrarFeedback(0, android.view.Gravity.CENTER);
+                    if (exoPlayer.isPlaying()) { 
+                        exoPlayer.pause(); 
+                        mostrarFeedback(android.R.drawable.ic_media_pause, android.view.Gravity.CENTER); 
+                    } else { 
+                        exoPlayer.play(); 
+                        mostrarFeedback(android.R.drawable.ic_media_play, android.view.Gravity.CENTER); 
+                    }
+                }
                 return true;
             }
             return true;
@@ -452,12 +466,13 @@ public class MainActivity extends AppCompatActivity {
 
         zonaDerecha.setOnTouchListener((v, event) -> {
             if (isLocked) return true;
+            int rightIcon = configPilotMode ? android.R.drawable.ic_media_previous : android.R.drawable.ic_media_next;
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 isUserHolding = true; isSwipingBrightness = false; startY = event.getY();
                 float curBri = getWindow().getAttributes().screenBrightness;
                 initialBrightness = curBri < 0 ? 0.5f : curBri;
                 pressStartTime = System.currentTimeMillis();
-                mostrarFeedback(0, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                mostrarFeedback(rightIcon, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
                 handlerSeek.postDelayed(() -> {
                     if (isUserHolding && !isSwipingBrightness) {
                         int skipDir = configPilotMode ? -1 : 1;
@@ -470,6 +485,7 @@ public class MainActivity extends AppCompatActivity {
                 float deltaY = startY - event.getY();
                 if (Math.abs(deltaY) > 30) {
                     isSwipingBrightness = true; handlerSeek.removeCallbacksAndMessages(null);
+                    if (imgFeedback != null) imgFeedback.setVisibility(View.GONE);
                     float briChange = deltaY / v.getHeight();
                     float newBri = Math.max(0.01f, Math.min(1.0f, initialBrightness + briChange));
                     android.view.WindowManager.LayoutParams lp = getWindow().getAttributes(); lp.screenBrightness = newBri; getWindow().setAttributes(lp);
@@ -482,7 +498,8 @@ public class MainActivity extends AppCompatActivity {
                 if (!isSwipingBrightness) {
                     if (System.currentTimeMillis() - pressStartTime < 3000) {
                         if (configPilotMode) irAlVideoAnterior(); else irAlSiguienteVideo();
-                    } else mostrarFeedback(0, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+                    }
+                    mostrarFeedback(rightIcon, android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
                 }
                 isSwipingBrightness = false; return true;
             }
@@ -666,6 +683,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean tieneVideos(File carpeta) {
+        if (carpeta == null || !carpeta.exists()) return false;
         File[] contenido = carpeta.listFiles();
         if (contenido == null) return false;
         for (File f : contenido) {
@@ -675,15 +693,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean esVideo(String n) {
+        if (n == null) return false;
         String l = n.toLowerCase();
-        return l.endsWith(".mp4") || l.endsWith(".mkv") || l.endsWith(".avi") || l.endsWith(".webm") || l.endsWith(".mp3");
+        return l.endsWith(".mp4") || l.endsWith(".mkv") || l.endsWith(".avi") || l.endsWith(".webm") || 
+               l.endsWith(".3gp") || l.endsWith(".ts") || l.endsWith(".mov") || l.endsWith(".mpg") || 
+               l.endsWith(".mpeg") || l.endsWith(".mp3") || l.endsWith(".m4a") || l.endsWith(".wav") || 
+               l.endsWith(".flac") || l.endsWith(".aac") || l.endsWith(".ogg");
     }
 
     private boolean isAudioFile(String p) {
         if (p == null) return false;
         String l = p.toLowerCase();
         return l.endsWith(".mp3") || l.endsWith(".m4a") || l.endsWith(".wav") || l.endsWith(".flac") || 
-               l.contains(".mp3?") || l.contains(".mp3/");
+               l.endsWith(".aac") || l.endsWith(".ogg") || l.contains(".mp3?") || l.contains(".mp3/");
     }
 
     private String getFileNameToDisplay(String n) {
@@ -694,7 +716,54 @@ public class MainActivity extends AppCompatActivity {
         return n;
     }
 
+    private void obtenerTodasLasSubcarpetasConVideos(File dir, List<File> resultado) {
+        if (dir == null || !dir.exists() || !dir.isDirectory()) return;
+        if (tieneVideos(dir)) {
+            resultado.add(dir);
+        }
+        File[] hijos = dir.listFiles(File::isDirectory);
+        if (hijos != null) {
+            List<File> listaHijos = new ArrayList<>();
+            for (File h : hijos) listaHijos.add(h);
+            Collections.sort(listaHijos, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
+            for (File sub : listaHijos) {
+                obtenerTodasLasSubcarpetasConVideos(sub, resultado);
+            }
+        }
+    }
+
+    private File obtenerCarpetaRaizConfigurada(File carpetaActual) {
+        if (carpetaActual == null) return null;
+        
+        if (configDefaultFolder != null && !configDefaultFolder.trim().isEmpty()) {
+            String targetName = configDefaultFolder.trim();
+            File curr = carpetaActual;
+            while (curr != null) {
+                if (curr.getName().equalsIgnoreCase(targetName)) {
+                    return curr;
+                }
+                curr = curr.getParentFile();
+            }
+        }
+        
+        File curr = carpetaActual;
+        File mejorRaiz = carpetaActual;
+        while (curr != null) {
+            File p = curr.getParentFile();
+            if (p == null || p.getAbsolutePath().equals("/") || p.getAbsolutePath().equals("/storage") || p.getAbsolutePath().equals("/storage/emulated")) {
+                break;
+            }
+            mejorRaiz = curr;
+            curr = p;
+        }
+        return mejorRaiz;
+    }
+
     private void reproducirVideosDeCarpeta(File videoInicial, File carpeta) {
+        reproducirVideosDeCarpeta(videoInicial, carpeta, false);
+    }
+
+    private void reproducirVideosDeCarpeta(File videoInicial, File carpeta, boolean fromAutoTransition) {
         if (videoInicial == null || carpeta == null) return;
         isLocked = false;
         if (imgLockStatus != null) imgLockStatus.setVisibility(View.GONE);
@@ -725,53 +794,53 @@ public class MainActivity extends AppCompatActivity {
         contenedorExplorador.setVisibility(View.GONE); contenedorVideo.setVisibility(View.VISIBLE);
         capaZonasToque.setVisibility(View.VISIBLE); ocultarBarrasSistema();
         exoPlayer.seekTo(startIdx, 0);
-        SharedPreferences r = getSharedPreferences("resume_prefs", MODE_PRIVATE);
-        if (r.getString("last_video_path", "").equals(videoInicial.getAbsolutePath())) {
-            long p = r.getLong("last_video_pos", 0); if (p > 0) exoPlayer.seekTo(startIdx, p);
+
+        if (!fromAutoTransition) {
+            SharedPreferences r = getSharedPreferences("resume_prefs", MODE_PRIVATE);
+            if (r.getString("last_video_path", "").equals(videoInicial.getAbsolutePath())) {
+                long p = r.getLong("last_video_pos", 0);
+                long dur = exoPlayer.getDuration();
+                if (p > 0 && (dur <= 0 || p < dur - 3000)) {
+                    exoPlayer.seekTo(startIdx, p);
+                }
+            }
         }
         exoPlayer.prepare(); exoPlayer.play();
     }
 
     private void reproducirSiguienteCarpetaGlobal() {
         if (carpetaReproduciendoActualmente == null) return;
-        File padre = carpetaReproduciendoActualmente.getParentFile();
-        if (padre == null) return;
-        File[] hermanos = padre.listFiles(File::isDirectory);
-        if (hermanos != null) {
-            List<File> carpetas = new ArrayList<>();
-            for (File h : hermanos) carpetas.add(h);
-            Collections.sort(carpetas, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
-            int idx = carpetas.indexOf(carpetaReproduciendoActualmente);
-            
-            File sig = null;
-            // Buscar hacia adelante una carpeta con videos/musica
-            for (int i = 1; i <= carpetas.size(); i++) {
-                int nextIdx = (idx + i) % carpetas.size();
-                File temp = carpetas.get(nextIdx);
-                if (tieneVideos(temp)) {
-                    sig = temp;
-                    break;
-                }
-                if (nextIdx == idx) break;
-            }
+        
+        File raiz = obtenerCarpetaRaizConfigurada(carpetaReproduciendoActualmente);
+        if (raiz == null) raiz = carpetaReproduciendoActualmente;
 
-            if (sig != null) {
-                actualizarEstadoCarpeta(sig);
-                contenedorExplorador.setVisibility(View.GONE); 
-                contenedorVideo.setVisibility(View.VISIBLE);
-                capaZonasToque.setVisibility(View.VISIBLE);
-                txtRutaActual.setVisibility(View.GONE); 
-                listViewArchivos.setVisibility(View.GONE);
-                ocultarBarrasSistema();
-                
-                for (File f : archivosEnCarpetaActual) {
-                    if (!f.isDirectory() && esVideo(f.getName())) { 
-                        reproducirVideosDeCarpeta(f, sig); 
-                        break; 
-                    }
+        List<File> subcarpetas = new ArrayList<>();
+        obtenerTodasLasSubcarpetasConVideos(raiz, subcarpetas);
+
+        if (subcarpetas.isEmpty()) {
+            Toast.makeText(this, "No se encontraron carpetas con videos.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int idx = subcarpetas.indexOf(carpetaReproduciendoActualmente);
+        int nextIdx = (idx != -1) ? (idx + 1) % subcarpetas.size() : 0;
+
+        File sig = subcarpetas.get(nextIdx);
+
+        if (sig != null) {
+            actualizarEstadoCarpeta(sig);
+            contenedorExplorador.setVisibility(View.GONE); 
+            contenedorVideo.setVisibility(View.VISIBLE);
+            capaZonasToque.setVisibility(View.VISIBLE);
+            txtRutaActual.setVisibility(View.GONE); 
+            listViewArchivos.setVisibility(View.GONE);
+            ocultarBarrasSistema();
+            
+            for (File f : archivosEnCarpetaActual) {
+                if (!f.isDirectory() && esVideo(f.getName())) { 
+                    reproducirVideosDeCarpeta(f, sig, true); 
+                    break; 
                 }
-            } else {
-                Toast.makeText(this, "Has llegado al final de todas las carpetas.", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -1342,43 +1411,35 @@ public class MainActivity extends AppCompatActivity {
 
     private void reproducirCarpetaAnteriorGlobal() {
         if (carpetaReproduciendoActualmente == null) return;
-        File padre = carpetaReproduciendoActualmente.getParentFile();
-        if (padre != null) {
-            File[] hermanos = padre.listFiles(File::isDirectory);
-            if (hermanos != null) {
-                List<File> list = new ArrayList<>(); for (File h : hermanos) list.add(h);
-                Collections.sort(list, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
-                int idx = list.indexOf(carpetaReproduciendoActualmente);
-                
-                File ant = null;
-                // Buscar hacia atrás una carpeta con contenido reproducible
-                for (int i = 1; i <= list.size(); i++) {
-                    int prevIdx = (idx - i + list.size()) % list.size();
-                    File temp = list.get(prevIdx);
-                    if (tieneVideos(temp)) {
-                        ant = temp;
-                        break;
-                    }
-                    if (prevIdx == idx) break;
-                }
+        
+        File raiz = obtenerCarpetaRaizConfigurada(carpetaReproduciendoActualmente);
+        if (raiz == null) raiz = carpetaReproduciendoActualmente;
 
-                if (ant != null) {
-                    actualizarEstadoCarpeta(ant);
-                    contenedorExplorador.setVisibility(View.GONE); 
-                    contenedorVideo.setVisibility(View.VISIBLE); 
-                    capaZonasToque.setVisibility(View.VISIBLE);
-                    txtRutaActual.setVisibility(View.GONE); 
-                    listViewArchivos.setVisibility(View.GONE);
-                    ocultarBarrasSistema();
-                    
-                    File ult = null; 
-                    for (int i = archivosEnCarpetaActual.size()-1; i>=0; i--) { 
-                        File f = archivosEnCarpetaActual.get(i); 
-                        if (!f.isDirectory() && esVideo(f.getName())) { ult = f; break; } 
-                    }
-                    if (ult != null) reproducirVideosDeCarpeta(ult, ant);
-                }
+        List<File> subcarpetas = new ArrayList<>();
+        obtenerTodasLasSubcarpetasConVideos(raiz, subcarpetas);
+
+        if (subcarpetas.isEmpty()) return;
+
+        int idx = subcarpetas.indexOf(carpetaReproduciendoActualmente);
+        int prevIdx = (idx != -1) ? (idx - 1 + subcarpetas.size()) % subcarpetas.size() : subcarpetas.size() - 1;
+
+        File ant = subcarpetas.get(prevIdx);
+
+        if (ant != null) {
+            actualizarEstadoCarpeta(ant);
+            contenedorExplorador.setVisibility(View.GONE); 
+            contenedorVideo.setVisibility(View.VISIBLE); 
+            capaZonasToque.setVisibility(View.VISIBLE);
+            txtRutaActual.setVisibility(View.GONE); 
+            listViewArchivos.setVisibility(View.GONE);
+            ocultarBarrasSistema();
+            
+            File ult = null; 
+            for (int i = archivosEnCarpetaActual.size() - 1; i >= 0; i--) { 
+                File f = archivosEnCarpetaActual.get(i); 
+                if (!f.isDirectory() && esVideo(f.getName())) { ult = f; break; } 
             }
+            if (ult != null) reproducirVideosDeCarpeta(ult, ant, true);
         }
     }
 
