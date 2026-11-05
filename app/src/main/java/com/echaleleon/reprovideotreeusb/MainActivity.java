@@ -76,6 +76,9 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar pbVolumen;
     private ProgressBar pbBrillo;
     private ImageButton btnShuffle;
+    private View btnShuffleOff, btnShuffleFolder, btnShuffleCategory, btnShuffleGlobal;
+    private ImageView imgShuffleOff, imgShuffleFolder, imgShuffleCategory, imgShuffleGlobal;
+    private TextView txtShuffleOff, txtShuffleFolder, txtShuffleCategory, txtShuffleGlobal;
     private int shuffleMode = 0; // 0 = Ordenado, 1 = Carpeta Actual, 2 = Categoría Padre, 3 = General
     private boolean isUserHolding = false;
     private float startY;
@@ -128,11 +131,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private LinearLayout layoutBotonesModos;
-    private ImageButton btnInicio;
-    private ImageButton btnScreenOff;
-    private ImageButton btnFavoritos;
-    private ImageButton btnMasVistos;
-    private ImageButton btnToggleFavorito;
+    private View btnInicio;
+    private View btnScreenOff;
+    private View btnFavoritos;
+    private View btnMasVistos;
+    private ImageView btnToggleFavorito;
+    private View btnConfiguracion;
     private int configTopCountThreshold = 5;
     private boolean isInitialLaunch = true;
     private RelativeLayout capaPantallaApagada;
@@ -158,8 +162,6 @@ public class MainActivity extends AppCompatActivity {
             if (exoPlayer != null) exoPlayer.setVolume(0.2f);
         }
     };
-
-    private ImageButton btnConfiguracion;
 
     @androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
     @Override
@@ -233,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
         btnScreenOff.setOnClickListener(v -> {
             isScreenOffMode = !isScreenOffMode;
             capaPantallaApagada.setVisibility(isScreenOffMode ? View.VISIBLE : View.GONE);
-            btnScreenOff.setColorFilter(isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : 
+            tintView(btnScreenOff, isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") :
                 (configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK));
             
             if (isScreenOffMode) {
@@ -254,6 +256,21 @@ public class MainActivity extends AppCompatActivity {
         pbVolumen = findViewById(R.id.pbVolumen);
         pbBrillo = findViewById(R.id.pbBrillo);
         btnShuffle = findViewById(R.id.btnShuffle);
+
+        btnShuffleOff = findViewById(R.id.btnShuffleOff);
+        btnShuffleFolder = findViewById(R.id.btnShuffleFolder);
+        btnShuffleCategory = findViewById(R.id.btnShuffleCategory);
+        btnShuffleGlobal = findViewById(R.id.btnShuffleGlobal);
+
+        imgShuffleOff = findViewById(R.id.imgShuffleOff);
+        imgShuffleFolder = findViewById(R.id.imgShuffleFolder);
+        imgShuffleCategory = findViewById(R.id.imgShuffleCategory);
+        imgShuffleGlobal = findViewById(R.id.imgShuffleGlobal);
+
+        txtShuffleOff = findViewById(R.id.txtShuffleOff);
+        txtShuffleFolder = findViewById(R.id.txtShuffleFolder);
+        txtShuffleCategory = findViewById(R.id.txtShuffleCategory);
+        txtShuffleGlobal = findViewById(R.id.txtShuffleGlobal);
 
         capaZonasToque = findViewById(R.id.capaZonasToque);
         zonaIzquierda = findViewById(R.id.zonaIzquierda);
@@ -291,19 +308,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnShuffle.setOnClickListener(v -> {
-            shuffleMode = (shuffleMode + 1) % 4;
-            actualizarBotonShuffleUI();
-            
-            if (contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE && !videosEnReproduccionActual.isEmpty()) {
-                int currentIndex = exoPlayer != null ? exoPlayer.getCurrentMediaItemIndex() : 0;
-                File videoActual = (currentIndex >= 0 && currentIndex < videosEnReproduccionActual.size()) ? 
-                                   videosEnReproduccionActual.get(currentIndex) : null;
-                if (videoActual != null && carpetaReproduciendoActualmente != null) {
-                    reproducirVideosDeCarpeta(videoActual, carpetaReproduciendoActualmente, true);
-                }
-            }
-        });
+        if (btnShuffleOff != null) btnShuffleOff.setOnClickListener(v -> activarModoAleatorioEspecifico(0));
+        if (btnShuffleFolder != null) btnShuffleFolder.setOnClickListener(v -> activarModoAleatorioEspecifico(1));
+        if (btnShuffleCategory != null) btnShuffleCategory.setOnClickListener(v -> activarModoAleatorioEspecifico(2));
+        if (btnShuffleGlobal != null) btnShuffleGlobal.setOnClickListener(v -> activarModoAleatorioEspecifico(3));
+        if (btnShuffle != null) btnShuffle.setOnClickListener(v -> activarModoAleatorioEspecifico((shuffleMode + 1) % 4));
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
@@ -652,9 +661,11 @@ public class MainActivity extends AppCompatActivity {
 
         int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
         txtRutaActual.setTextColor(textColor);
-        if (btnConfiguracion != null) btnConfiguracion.setColorFilter(textColor);
-        if (btnInicio != null) btnInicio.setColorFilter(textColor);
-        if (btnScreenOff != null) btnScreenOff.setColorFilter(isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : textColor);
+        tintView(btnConfiguracion, textColor);
+        tintView(btnInicio, textColor);
+        tintView(btnFavoritos, textColor);
+        tintView(btnMasVistos, textColor);
+        tintView(btnScreenOff, isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : textColor);
 
         listViewArchivos.setVisibility(View.VISIBLE); 
         txtRutaActual.setVisibility(View.VISIBLE);
@@ -789,31 +800,67 @@ public class MainActivity extends AppCompatActivity {
         return mejorRaiz;
     }
 
+    private void activarModoAleatorioEspecifico(int nuevoModo) {
+        shuffleMode = nuevoModo;
+        actualizarBotonShuffleUI();
+        
+        if (contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE && !videosEnReproduccionActual.isEmpty()) {
+            int currentIndex = exoPlayer != null ? exoPlayer.getCurrentMediaItemIndex() : 0;
+            File videoActual = (currentIndex >= 0 && currentIndex < videosEnReproduccionActual.size()) ? 
+                               videosEnReproduccionActual.get(currentIndex) : null;
+            if (videoActual != null && carpetaReproduciendoActualmente != null) {
+                reproducirVideosDeCarpeta(videoActual, carpetaReproduciendoActualmente, true);
+            }
+        }
+    }
+
     private void actualizarBotonShuffleUI() {
-        if (btnShuffle == null) return;
-        int color;
+        int colorOff = android.graphics.Color.parseColor("#66FFFFFF");
+        int textOff = android.graphics.Color.parseColor("#66FFFFFF");
+        
+        int colorActive;
         String msg;
         switch (shuffleMode) {
             case 1:
-                color = android.graphics.Color.parseColor("#BB86FC"); // Morado: Carpeta Actual
+                colorActive = android.graphics.Color.parseColor("#BB86FC"); // Morado: Carpeta
                 msg = "🔀 Aleatorio: Carpeta Actual";
                 break;
             case 2:
-                color = android.graphics.Color.parseColor("#00E676"); // Verde: Categoría Padre
+                colorActive = android.graphics.Color.parseColor("#00E676"); // Verde: Categoría
                 String nombreCat = carpetaReproduciendoActualmente != null ? 
                         (carpetaReproduciendoActualmente.getParentFile() != null ? carpetaReproduciendoActualmente.getParentFile().getName() : carpetaReproduciendoActualmente.getName()) : "";
                 msg = "🔀 Aleatorio: Categoría" + (nombreCat.isEmpty() ? "" : " (" + nombreCat + ")");
                 break;
             case 3:
-                color = android.graphics.Color.parseColor("#FF9100"); // Naranja: General
+                colorActive = android.graphics.Color.parseColor("#FF9100"); // Naranja: General
                 msg = "🔀 Aleatorio: General (Toda la colección)";
                 break;
             default:
-                color = android.graphics.Color.parseColor("#888888"); // Gris: Modo Ordenado
+                colorActive = android.graphics.Color.parseColor("#FFFFFF"); // Blanco: Ordenado
                 msg = "🔀 Modo Ordenado";
                 break;
         }
-        btnShuffle.setColorFilter(color);
+
+        if (imgShuffleOff != null) {
+            imgShuffleOff.setColorFilter(shuffleMode == 0 ? colorActive : colorOff);
+            txtShuffleOff.setTextColor(shuffleMode == 0 ? colorActive : textOff);
+        }
+        if (imgShuffleFolder != null) {
+            imgShuffleFolder.setColorFilter(shuffleMode == 1 ? colorActive : colorOff);
+            txtShuffleFolder.setTextColor(shuffleMode == 1 ? colorActive : textOff);
+        }
+        if (imgShuffleCategory != null) {
+            imgShuffleCategory.setColorFilter(shuffleMode == 2 ? colorActive : colorOff);
+            txtShuffleCategory.setTextColor(shuffleMode == 2 ? colorActive : textOff);
+        }
+        if (imgShuffleGlobal != null) {
+            imgShuffleGlobal.setColorFilter(shuffleMode == 3 ? colorActive : colorOff);
+            txtShuffleGlobal.setTextColor(shuffleMode == 3 ? colorActive : textOff);
+        }
+        if (btnShuffle != null) {
+            btnShuffle.setColorFilter(colorActive);
+        }
+
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
@@ -1444,6 +1491,18 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) v.findViewById(R.id.lblItemHeight)).setText(R.string.config_item_height);
     }
 
+    private void tintView(View v, int color) {
+        if (v == null) return;
+        if (v instanceof ImageView) {
+            ((ImageView) v).setColorFilter(color);
+        } else if (v instanceof android.view.ViewGroup) {
+            android.view.ViewGroup g = (android.view.ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                tintView(g.getChildAt(i), color);
+            }
+        }
+    }
+
     private void aplicarTemaFondo() {
         View root = findViewById(android.R.id.content);
         int bg = configNightMode ? android.graphics.Color.parseColor("#121212") : android.graphics.Color.parseColor("#F5F5F5");
@@ -1453,11 +1512,11 @@ public class MainActivity extends AppCompatActivity {
         if (layoutBarraInferior != null) layoutBarraInferior.setBackgroundColor(bar);
         if (layoutBarraSuperior != null) layoutBarraSuperior.setBackgroundColor(bar);
         if (txtRutaActual != null) txtRutaActual.setTextColor(txt);
-        if (btnConfiguracion != null) btnConfiguracion.setColorFilter(txt);
-        if (btnInicio != null) btnInicio.setColorFilter(txt);
-        if (btnFavoritos != null) btnFavoritos.setColorFilter(txt);
-        if (btnMasVistos != null) btnMasVistos.setColorFilter(txt);
-        if (btnScreenOff != null) btnScreenOff.setColorFilter(isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : txt);
+        tintView(btnConfiguracion, txt);
+        tintView(btnInicio, txt);
+        tintView(btnFavoritos, txt);
+        tintView(btnMasVistos, txt);
+        tintView(btnScreenOff, isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : txt);
     }
 
     private boolean esFavorito(File file) {
