@@ -61,7 +61,7 @@
 
             <ImageButton
                 android:id="@+id/btnInicio"
-                android:layout_width="60dp"
+                android:layout_width="50dp"
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_home_custom"
                 android:background="?android:attr/selectableItemBackground"
@@ -71,13 +71,33 @@
 
             <ImageButton
                 android:id="@+id/btnConfiguracion"
-                android:layout_width="60dp"
+                android:layout_width="50dp"
                 android:layout_height="match_parent"
                 android:src="@android:drawable/ic_menu_preferences"
                 android:background="?android:attr/selectableItemBackground"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:contentDescription="Configuración" />
+
+            <ImageButton
+                android:id="@+id/btnFavoritos"
+                android:layout_width="50dp"
+                android:layout_height="match_parent"
+                android:src="@android:drawable/btn_star_big_off"
+                android:background="?android:attr/selectableItemBackground"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Favoritos" />
+
+            <ImageButton
+                android:id="@+id/btnMasVistos"
+                android:layout_width="50dp"
+                android:layout_height="match_parent"
+                android:src="@android:drawable/ic_menu_recent_history"
+                android:background="?android:attr/selectableItemBackground"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Más Vistos" />
 
             <LinearLayout
                 android:id="@+id/layoutBotonesModos"
@@ -89,7 +109,7 @@
 
             <ImageButton
                 android:id="@+id/btnScreenOff"
-                android:layout_width="60dp"
+                android:layout_width="50dp"
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_screen_off"
                 android:background="?android:attr/selectableItemBackground"
@@ -359,15 +379,32 @@
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
-                <ImageButton
-                    android:id="@+id/btnShuffle"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:src="@drawable/ic_shuffle"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Aleatorio"
-                    app:tint="#888888" />
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <ImageButton
+                        android:id="@+id/btnShuffle"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_shuffle"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Aleatorio"
+                        app:tint="#888888" />
+
+                    <ImageButton
+                        android:id="@+id/btnToggleFavorito"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="24dp"
+                        android:src="@android:drawable/btn_star_big_off"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Favorito"
+                        app:tint="#888888" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/txtTiempoRestante"

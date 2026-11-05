@@ -30,4 +30,13 @@
     <string name="config_mode_enabled">Activar este botón en barra</string>
     <string name="config_mode_name_hint">Nombre del Botón (Modo)</string>
     <string name="config_mode_conductor">CONDUCTOR (GLOBAL)</string>
+    <string name="config_top_count_threshold">Reproducciones mínimas para "Más Vistos"</string>
+    <string name="btn_favoritos">Favoritos</string>
+    <string name="btn_mas_vistos">Más Vistos</string>
+    <string name="msg_added_favorite">Añadido a Favoritos ❤️</string>
+    <string name="msg_removed_favorite">Eliminado de Favoritos</string>
+    <string name="title_favoritos">❤️ Favoritos de </string>
+    <string name="title_mas_vistos">🔥 Más Vistos de </string>
+    <string name="msg_no_favorites">No hay favoritos guardados en esta categoría.</string>
+    <string name="msg_no_top_played">No hay archivos reproducidos %d o más veces.</string>
 </resources>

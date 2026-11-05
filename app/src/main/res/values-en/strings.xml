@@ -30,4 +30,13 @@
     <string name="config_mode_enabled">Enable this button in bar</string>
     <string name="config_mode_name_hint">Button Name (Mode)</string>
     <string name="config_mode_conductor">CONDUCTOR (GLOBAL)</string>
+    <string name="config_top_count_threshold">Minimum play count for "Top Played"</string>
+    <string name="btn_favoritos">Favorites</string>
+    <string name="btn_mas_vistos">Top Played</string>
+    <string name="msg_added_favorite">Added to Favorites ❤️</string>
+    <string name="msg_removed_favorite">Removed from Favorites</string>
+    <string name="title_favoritos">❤️ Favorites of </string>
+    <string name="title_mas_vistos">🔥 Top Played of </string>
+    <string name="msg_no_favorites">No saved favorites in this category.</string>
+    <string name="msg_no_top_played">No files played %d or more times.</string>
 </resources>

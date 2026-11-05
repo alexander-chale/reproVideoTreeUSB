@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar pbVolumen;
     private ProgressBar pbBrillo;
     private ImageButton btnShuffle;
-    private boolean isShuffleMode = false;
+    private int shuffleMode = 0; // 0 = Ordenado, 1 = Carpeta Actual, 2 = Categoría Padre, 3 = General
     private boolean isUserHolding = false;
     private float startY;
     private int initialVolume;
@@ -130,6 +130,11 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout layoutBotonesModos;
     private ImageButton btnInicio;
     private ImageButton btnScreenOff;
+    private ImageButton btnFavoritos;
+    private ImageButton btnMasVistos;
+    private ImageButton btnToggleFavorito;
+    private int configTopCountThreshold = 5;
+    private boolean isInitialLaunch = true;
     private RelativeLayout capaPantallaApagada;
     private TextView txtMusicTitle;
     private TextView txtMusicArtist, txtMusicAlbum, txtMusicYear, txtMusicGenre, txtMusicFile, txtMusicBitrate;
@@ -188,6 +193,10 @@ public class MainActivity extends AppCompatActivity {
         imgAlbumArt = findViewById(R.id.imgAlbumArt);
         imgLockStatus = findViewById(R.id.imgLockStatus);
 
+        btnFavoritos = findViewById(R.id.btnFavoritos);
+        btnMasVistos = findViewById(R.id.btnMasVistos);
+        btnToggleFavorito = findViewById(R.id.btnToggleFavorito);
+
         configItemHeight = prefs.getInt("item_height", 100);
         configTextSize = prefs.getInt("text_size", 32);
         configDefaultFolder = prefs.getString("default_folder", "Videos Musicales");
@@ -196,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
         configNightMode = prefs.getBoolean("night_mode", true);
         configPilotMode = prefs.getBoolean("pilot_mode", false);
         configHideExtension = prefs.getBoolean("hide_extension", false);
+        configTopCountThreshold = prefs.getInt("top_count_threshold", 5);
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         aplicarTemaFondo();
@@ -205,6 +215,20 @@ public class MainActivity extends AppCompatActivity {
             escanearYRefrescar();
             Toast.makeText(this, "Volviendo a carpeta inicial", Toast.LENGTH_SHORT).show();
         });
+
+        if (btnFavoritos != null) btnFavoritos.setOnClickListener(v -> mostrarFavoritosDeCategoria());
+        if (btnMasVistos != null) btnMasVistos.setOnClickListener(v -> mostrarMasVistosDeCategoria());
+        if (btnToggleFavorito != null) {
+            btnToggleFavorito.setOnClickListener(v -> {
+                if (exoPlayer != null && videosEnReproduccionActual != null) {
+                    int idx = exoPlayer.getCurrentMediaItemIndex();
+                    if (idx >= 0 && idx < videosEnReproduccionActual.size()) {
+                        File currentFile = videosEnReproduccionActual.get(idx);
+                        toggleFavorito(currentFile);
+                    }
+                }
+            });
+        }
 
         btnScreenOff.setOnClickListener(v -> {
             isScreenOffMode = !isScreenOffMode;
@@ -268,16 +292,16 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnShuffle.setOnClickListener(v -> {
-            isShuffleMode = !isShuffleMode;
-            btnShuffle.setColorFilter(isShuffleMode ? android.graphics.Color.parseColor("#BB86FC") : android.graphics.Color.parseColor("#888888"));
-            Toast.makeText(this, isShuffleMode ? "Modo Aleatorio Activo" : "Modo Ordenado", Toast.LENGTH_SHORT).show();
+            shuffleMode = (shuffleMode + 1) % 4;
+            actualizarBotonShuffleUI();
             
-            if (contenedorVideo.getVisibility() == View.VISIBLE && !videosEnReproduccionActual.isEmpty()) {
-                long currentPos = exoPlayer.getCurrentPosition();
-                int currentIndex = exoPlayer.getCurrentMediaItemIndex();
-                File videoActual = videosEnReproduccionActual.get(currentIndex);
-                reproducirVideosDeCarpeta(videoActual, carpetaReproduciendoActualmente);
-                exoPlayer.seekTo(exoPlayer.getCurrentMediaItemIndex(), currentPos);
+            if (contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE && !videosEnReproduccionActual.isEmpty()) {
+                int currentIndex = exoPlayer != null ? exoPlayer.getCurrentMediaItemIndex() : 0;
+                File videoActual = (currentIndex >= 0 && currentIndex < videosEnReproduccionActual.size()) ? 
+                                   videosEnReproduccionActual.get(currentIndex) : null;
+                if (videoActual != null && carpetaReproduciendoActualmente != null) {
+                    reproducirVideosDeCarpeta(videoActual, carpetaReproduciendoActualmente, true);
+                }
             }
         });
 
@@ -334,9 +358,14 @@ public class MainActivity extends AppCompatActivity {
                     String nombreArchivo = Uri.decode(new File(uriStr).getName());
                     boolean isAudio = isAudioFile(uriStr);
                     
-                    // Actualizar metadatos siempre por si acaso
+                    // Actualizar metadatos y registrar reproducciones
                     String path = mediaItem.localConfiguration.uri.getPath();
-                    if (path != null) cargarMetadatosAudio(new File(path));
+                    if (path != null) {
+                        File currentFile = new File(path);
+                        cargarMetadatosAudio(currentFile);
+                        registrarReproduccion(currentFile);
+                        actualizarBotonFavoritoUI(currentFile);
+                    }
 
                     if (isAudio) {
                         capaPantallaApagada.setVisibility(View.VISIBLE);
@@ -602,6 +631,7 @@ public class MainActivity extends AppCompatActivity {
         configNightMode = p.getBoolean(prefix + "night_mode", true);
         configPilotMode = p.getBoolean(prefix + "pilot_mode", false);
         configHideExtension = p.getBoolean(prefix + "hide_extension", false);
+        configTopCountThreshold = p.getInt(prefix + "top_count_threshold", 5);
         
         aplicarTemaFondo();
         if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
@@ -759,6 +789,34 @@ public class MainActivity extends AppCompatActivity {
         return mejorRaiz;
     }
 
+    private void actualizarBotonShuffleUI() {
+        if (btnShuffle == null) return;
+        int color;
+        String msg;
+        switch (shuffleMode) {
+            case 1:
+                color = android.graphics.Color.parseColor("#BB86FC"); // Morado: Carpeta Actual
+                msg = "🔀 Aleatorio: Carpeta Actual";
+                break;
+            case 2:
+                color = android.graphics.Color.parseColor("#00E676"); // Verde: Categoría Padre
+                String nombreCat = carpetaReproduciendoActualmente != null ? 
+                        (carpetaReproduciendoActualmente.getParentFile() != null ? carpetaReproduciendoActualmente.getParentFile().getName() : carpetaReproduciendoActualmente.getName()) : "";
+                msg = "🔀 Aleatorio: Categoría" + (nombreCat.isEmpty() ? "" : " (" + nombreCat + ")");
+                break;
+            case 3:
+                color = android.graphics.Color.parseColor("#FF9100"); // Naranja: General
+                msg = "🔀 Aleatorio: General (Toda la colección)";
+                break;
+            default:
+                color = android.graphics.Color.parseColor("#888888"); // Gris: Modo Ordenado
+                msg = "🔀 Modo Ordenado";
+                break;
+        }
+        btnShuffle.setColorFilter(color);
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
     private void reproducirVideosDeCarpeta(File videoInicial, File carpeta) {
         reproducirVideosDeCarpeta(videoInicial, carpeta, false);
     }
@@ -770,18 +828,66 @@ public class MainActivity extends AppCompatActivity {
         carpetaReproduciendoActualmente = carpeta;
         exoPlayer.stop(); exoPlayer.clearMediaItems();
         videosEnReproduccionActual.clear();
-        File[] list = carpeta.listFiles();
-        if (list != null) {
-            for (File f : list) if (f.isFile() && esVideo(f.getName())) videosEnReproduccionActual.add(f);
-        }
-        if (videosEnReproduccionActual.isEmpty()) return;
 
-        if (isShuffleMode) {
+        if (shuffleMode == 3) {
+            // Mode 3: General / Toda la colección de la carpeta raíz de inicio
+            File raizGeneral = obtenerCarpetaRaizConfigurada(carpeta);
+            if (raizGeneral == null) raizGeneral = carpeta;
+            List<File> todasSub = new ArrayList<>();
+            obtenerTodasLasSubcarpetasConVideos(raizGeneral, todasSub);
+            if (!todasSub.contains(raizGeneral) && tieneVideos(raizGeneral)) todasSub.add(0, raizGeneral);
+
+            for (File dir : todasSub) {
+                File[] files = dir.listFiles();
+                if (files != null) {
+                    for (File f : files) if (f.isFile() && esVideo(f.getName())) videosEnReproduccionActual.add(f);
+                }
+            }
             Collections.shuffle(videosEnReproduccionActual);
-            videosEnReproduccionActual.remove(videoInicial); videosEnReproduccionActual.add(0, videoInicial);
+            if (videoInicial != null && videosEnReproduccionActual.contains(videoInicial)) {
+                videosEnReproduccionActual.remove(videoInicial);
+                videosEnReproduccionActual.add(0, videoInicial);
+            }
+        } else if (shuffleMode == 2) {
+            // Mode 2: Categoría Padre
+            File raizCat = carpeta.getParentFile() != null ? carpeta.getParentFile() : obtenerCarpetaRaizConfigurada(carpeta);
+            if (raizCat == null) raizCat = carpeta;
+            List<File> subCat = new ArrayList<>();
+            obtenerTodasLasSubcarpetasConVideos(raizCat, subCat);
+            if (!subCat.contains(raizCat) && tieneVideos(raizCat)) subCat.add(0, raizCat);
+
+            for (File dir : subCat) {
+                File[] files = dir.listFiles();
+                if (files != null) {
+                    for (File f : files) if (f.isFile() && esVideo(f.getName())) videosEnReproduccionActual.add(f);
+                }
+            }
+            Collections.shuffle(videosEnReproduccionActual);
+            if (videoInicial != null && videosEnReproduccionActual.contains(videoInicial)) {
+                videosEnReproduccionActual.remove(videoInicial);
+                videosEnReproduccionActual.add(0, videoInicial);
+            }
+        } else if (shuffleMode == 1) {
+            // Mode 1: Carpeta Actual únicamente ("que no se salga de esa carpeta")
+            File[] list = carpeta.listFiles();
+            if (list != null) {
+                for (File f : list) if (f.isFile() && esVideo(f.getName())) videosEnReproduccionActual.add(f);
+            }
+            Collections.shuffle(videosEnReproduccionActual);
+            if (videoInicial != null && videosEnReproduccionActual.contains(videoInicial)) {
+                videosEnReproduccionActual.remove(videoInicial);
+                videosEnReproduccionActual.add(0, videoInicial);
+            }
         } else {
+            // Mode 0: Modo Ordenado
+            File[] list = carpeta.listFiles();
+            if (list != null) {
+                for (File f : list) if (f.isFile() && esVideo(f.getName())) videosEnReproduccionActual.add(f);
+            }
             Collections.sort(videosEnReproduccionActual, (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
         }
+
+        if (videosEnReproduccionActual.isEmpty()) return;
 
         int startIdx = 0;
         for (int i = 0; i < videosEnReproduccionActual.size(); i++) {
@@ -811,6 +917,25 @@ public class MainActivity extends AppCompatActivity {
     private void reproducirSiguienteCarpetaGlobal() {
         if (carpetaReproduciendoActualmente == null) return;
         
+        if (shuffleMode == 1) {
+            // Modo 1: Aleatorio Carpeta Actual ("que no se salga de esa carpeta")
+            for (File f : archivosEnCarpetaActual) {
+                if (!f.isDirectory() && esVideo(f.getName())) { 
+                    reproducirVideosDeCarpeta(f, carpetaReproduciendoActualmente, true); 
+                    return; 
+                }
+            }
+        } else if (shuffleMode == 2 || shuffleMode == 3) {
+            // Modo 2 y 3: Re-mezclar y continuar en reproducción continua
+            if (!videosEnReproduccionActual.isEmpty()) {
+                Collections.shuffle(videosEnReproduccionActual);
+                File primero = videosEnReproduccionActual.get(0);
+                reproducirVideosDeCarpeta(primero, primero.getParentFile() != null ? primero.getParentFile() : carpetaReproduciendoActualmente, true);
+                return;
+            }
+        }
+
+        // Modo 0: Ordenado
         File raiz = obtenerCarpetaRaizConfigurada(carpetaReproduciendoActualmente);
         if (raiz == null) raiz = carpetaReproduciendoActualmente;
 
@@ -1243,6 +1368,22 @@ public class MainActivity extends AppCompatActivity {
         ((SwitchMaterial)v.findViewById(R.id.switchPilotMode)).setChecked(p.getBoolean(prefix + "pilot_mode", false));
         ((SwitchMaterial)v.findViewById(R.id.switchHideExtension)).setChecked(p.getBoolean(prefix + "hide_extension", false));
 
+        SeekBar sbTop = v.findViewById(R.id.seekBarTopCount);
+        TextView tvTop = v.findViewById(R.id.txtValueTopCount);
+        if (sbTop != null) {
+            int topVal = p.getInt(prefix + "top_count_threshold", 5);
+            sbTop.setProgress(topVal);
+            if (tvTop != null) tvTop.setText(String.valueOf(topVal));
+            sbTop.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
+                    int val = Math.max(1, progress);
+                    if (tvTop != null) tvTop.setText(String.valueOf(val));
+                }
+                @Override public void onStartTrackingTouch(SeekBar sb) {}
+                @Override public void onStopTrackingTouch(SeekBar sb) {}
+            });
+        }
+
         if (modeIdx != -1) {
             UserMode m = userModes.get(modeIdx);
             ((SwitchMaterial)v.findViewById(R.id.switchModeEnabled)).setChecked(m.enabled);
@@ -1262,6 +1403,11 @@ public class MainActivity extends AppCompatActivity {
         e.putBoolean(prefix + "night_mode", ((SwitchMaterial)v.findViewById(R.id.switchNightMode)).isChecked());
         e.putBoolean(prefix + "pilot_mode", ((SwitchMaterial)v.findViewById(R.id.switchPilotMode)).isChecked());
         e.putBoolean(prefix + "hide_extension", ((SwitchMaterial)v.findViewById(R.id.switchHideExtension)).isChecked());
+
+        SeekBar sbTop = v.findViewById(R.id.seekBarTopCount);
+        if (sbTop != null) {
+            e.putInt(prefix + "top_count_threshold", Math.max(1, sbTop.getProgress()));
+        }
 
         if (modeIdx != -1) {
             boolean enabled = ((SwitchMaterial)v.findViewById(R.id.switchModeEnabled)).isChecked();
@@ -1287,6 +1433,8 @@ public class MainActivity extends AppCompatActivity {
         ((com.google.android.material.textfield.TextInputLayout) v.findViewById(R.id.tilDefaultFolder)).setHint(getString(R.string.config_default_folder));
         ((TextView) v.findViewById(R.id.lblLanguage)).setText(R.string.config_language);
         ((TextView) v.findViewById(R.id.lblSeekTime)).setText(R.string.config_seek_time);
+        TextView lblTop = v.findViewById(R.id.lblTopCountThreshold);
+        if (lblTop != null) lblTop.setText(R.string.config_top_count_threshold);
         ((SwitchMaterial) v.findViewById(R.id.switchNightMode)).setText(R.string.config_night_mode);
         ((SwitchMaterial) v.findViewById(R.id.switchPilotMode)).setText(R.string.config_pilotMode);
         ((TextView) v.findViewById(R.id.lblAppearance)).setText(R.string.config_appearance);
@@ -1307,7 +1455,186 @@ public class MainActivity extends AppCompatActivity {
         if (txtRutaActual != null) txtRutaActual.setTextColor(txt);
         if (btnConfiguracion != null) btnConfiguracion.setColorFilter(txt);
         if (btnInicio != null) btnInicio.setColorFilter(txt);
+        if (btnFavoritos != null) btnFavoritos.setColorFilter(txt);
+        if (btnMasVistos != null) btnMasVistos.setColorFilter(txt);
         if (btnScreenOff != null) btnScreenOff.setColorFilter(isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : txt);
+    }
+
+    private boolean esFavorito(File file) {
+        if (file == null) return false;
+        SharedPreferences p = getSharedPreferences("media_favorites", MODE_PRIVATE);
+        return p.getBoolean(file.getAbsolutePath(), false);
+    }
+
+    private void toggleFavorito(File file) {
+        if (file == null) return;
+        SharedPreferences p = getSharedPreferences("media_favorites", MODE_PRIVATE);
+        boolean isFav = !p.getBoolean(file.getAbsolutePath(), false);
+        p.edit().putBoolean(file.getAbsolutePath(), isFav).apply();
+        
+        Toast.makeText(this, isFav ? getString(R.string.msg_added_favorite) : getString(R.string.msg_removed_favorite), Toast.LENGTH_SHORT).show();
+        actualizarBotonFavoritoUI(file);
+        if (carpetaReproduciendoActualmente != null && contenedorExplorador != null && contenedorExplorador.getVisibility() == View.VISIBLE) {
+            navegarACarpeta(carpetaReproduciendoActualmente);
+        }
+    }
+
+    private void actualizarBotonFavoritoUI(File file) {
+        if (btnToggleFavorito == null || file == null) return;
+        boolean fav = esFavorito(file);
+        btnToggleFavorito.setImageResource(fav ? android.R.drawable.btn_star_big_on : android.R.drawable.btn_star_big_off);
+        btnToggleFavorito.setColorFilter(fav ? android.graphics.Color.parseColor("#FF1744") : android.graphics.Color.parseColor("#888888"));
+    }
+
+    private void registrarReproduccion(File file) {
+        if (file == null || !file.exists()) return;
+        SharedPreferences p = getSharedPreferences("media_play_counts", MODE_PRIVATE);
+        String key = file.getAbsolutePath();
+        int currentCount = p.getInt(key, 0);
+        p.edit().putInt(key, currentCount + 1).apply();
+    }
+
+    private void mostrarFavoritosDeCategoria() {
+        File raiz = carpetaReproduciendoActualmente != null ? obtenerCarpetaRaizConfigurada(carpetaReproduciendoActualmente) : null;
+        if (raiz == null) {
+            escanearYRefrescar();
+            raiz = carpetaReproduciendoActualmente != null ? obtenerCarpetaRaizConfigurada(carpetaReproduciendoActualmente) : null;
+        }
+        if (raiz == null) return;
+
+        List<File> todasSubcarpetas = new ArrayList<>();
+        obtenerTodasLasSubcarpetasConVideos(raiz, todasSubcarpetas);
+        if (!todasSubcarpetas.contains(raiz) && tieneVideos(raiz)) {
+            todasSubcarpetas.add(0, raiz);
+        }
+
+        List<File> favoritosCategoria = new ArrayList<>();
+        for (File dir : todasSubcarpetas) {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isFile() && esVideo(f.getName()) && esFavorito(f)) {
+                        favoritosCategoria.add(f);
+                    }
+                }
+            }
+        }
+
+        if (favoritosCategoria.isEmpty()) {
+            Toast.makeText(this, R.string.msg_no_favorites, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        reproducirListaEspecial(favoritosCategoria, getString(R.string.title_favoritos) + raiz.getName());
+    }
+
+    private void mostrarMasVistosDeCategoria() {
+        File raiz = carpetaReproduciendoActualmente != null ? obtenerCarpetaRaizConfigurada(carpetaReproduciendoActualmente) : null;
+        if (raiz == null) {
+            escanearYRefrescar();
+            raiz = carpetaReproduciendoActualmente != null ? obtenerCarpetaRaizConfigurada(carpetaReproduciendoActualmente) : null;
+        }
+        if (raiz == null) return;
+
+        List<File> todasSubcarpetas = new ArrayList<>();
+        obtenerTodasLasSubcarpetasConVideos(raiz, todasSubcarpetas);
+        if (!todasSubcarpetas.contains(raiz) && tieneVideos(raiz)) {
+            todasSubcarpetas.add(0, raiz);
+        }
+
+        SharedPreferences p = getSharedPreferences("media_play_counts", MODE_PRIVATE);
+        List<File> masVistosCategoria = new ArrayList<>();
+        for (File dir : todasSubcarpetas) {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isFile() && esVideo(f.getName())) {
+                        int count = p.getInt(f.getAbsolutePath(), 0);
+                        if (count >= configTopCountThreshold) {
+                            masVistosCategoria.add(f);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (masVistosCategoria.isEmpty()) {
+            Toast.makeText(this, String.format(getString(R.string.msg_no_top_played), configTopCountThreshold), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Collections.sort(masVistosCategoria, (f1, f2) -> Integer.compare(p.getInt(f2.getAbsolutePath(), 0), p.getInt(f1.getAbsolutePath(), 0)));
+
+        reproducirListaEspecial(masVistosCategoria, getString(R.string.title_mas_vistos) + raiz.getName());
+    }
+
+    private void reproducirListaEspecial(List<File> lista, String titulo) {
+        if (lista == null || lista.isEmpty()) return;
+        isLocked = false;
+        if (imgLockStatus != null) imgLockStatus.setVisibility(View.GONE);
+        txtRutaActual.setText(titulo);
+        exoPlayer.stop(); exoPlayer.clearMediaItems();
+        videosEnReproduccionActual.clear();
+        videosEnReproduccionActual.addAll(lista);
+
+        for (File v : videosEnReproduccionActual) {
+            exoPlayer.addMediaItem(MediaItem.fromUri(Uri.fromFile(v)));
+        }
+
+        File primero = videosEnReproduccionActual.get(0);
+        mostrarNombreVideo(primero.getName());
+        contenedorExplorador.setVisibility(View.GONE); contenedorVideo.setVisibility(View.VISIBLE);
+        capaZonasToque.setVisibility(View.VISIBLE); ocultarBarrasSistema();
+        exoPlayer.seekTo(0, 0);
+        exoPlayer.prepare(); exoPlayer.play();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        guardarEstadoActual();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        guardarEstadoActual();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        guardarEstadoActual();
+        if (exoPlayer != null) {
+            exoPlayer.release();
+            exoPlayer = null;
+        }
+        if (visualizerHandler != null && visualizerRunnable != null) {
+            visualizerHandler.removeCallbacks(visualizerRunnable);
+        }
+        if (handlerProgreso != null && runnableProgreso != null) {
+            handlerProgreso.removeCallbacks(runnableProgreso);
+        }
+        if (handlerUI != null && runnableOcultarUI != null) {
+            handlerUI.removeCallbacks(runnableOcultarUI);
+        }
+    }
+
+    private void guardarEstadoActual() {
+        if (exoPlayer != null && videosEnReproduccionActual != null && !videosEnReproduccionActual.isEmpty()) {
+            int idx = exoPlayer.getCurrentMediaItemIndex();
+            if (idx >= 0 && idx < videosEnReproduccionActual.size()) {
+                File v = videosEnReproduccionActual.get(idx);
+                long pos = exoPlayer.getCurrentPosition();
+                SharedPreferences.Editor e = getSharedPreferences("resume_prefs", MODE_PRIVATE).edit();
+                e.putString("last_video_path", v.getAbsolutePath());
+                if (carpetaReproduciendoActualmente != null) {
+                    e.putString("last_folder_path", carpetaReproduciendoActualmente.getAbsolutePath());
+                }
+                e.putLong("last_video_pos", pos);
+                e.apply();
+            }
+        }
     }
 
     private void actualizarColoresDialogo(View v) {
@@ -1451,11 +1778,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void escanearYRefrescar() {
+        if (isInitialLaunch) {
+            isInitialLaunch = false;
+            SharedPreferences r = getSharedPreferences("resume_prefs", MODE_PRIVATE);
+            String lastPath = r.getString("last_video_path", null);
+            if (lastPath != null) {
+                File lastFile = new File(lastPath);
+                if (lastFile.exists() && lastFile.isFile()) {
+                    File lastFolder = lastFile.getParentFile();
+                    if (lastFolder != null && lastFolder.exists()) {
+                        actualizarEstadoCarpeta(lastFolder);
+                        reproducirVideosDeCarpeta(lastFile, lastFolder, false);
+                        return;
+                    }
+                }
+            }
+        }
+
         File interna = Environment.getExternalStorageDirectory();
         File storage = new File("/storage/");
         if (storage.exists() && storage.listFiles() != null) {
             for (File f : storage.listFiles()) {
-                if (f.isDirectory() && !f.getName().equals("emulated") && !f.getName().equals("self")) {
+                if (f.isDirectory() && !f.getName().equalsIgnoreCase("emulated") && !f.getName().equalsIgnoreCase("self")) {
                     if (configDefaultFolder != null && !configDefaultFolder.isEmpty()) {
                         File fav = new File(f, configDefaultFolder); if (fav.exists() && fav.isDirectory()) { navegarACarpeta(fav); return; }
                     }
