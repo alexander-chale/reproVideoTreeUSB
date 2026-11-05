@@ -89,6 +89,18 @@ public class MainActivity extends AppCompatActivity {
     private final android.os.Handler handlerProgreso = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable runnableProgreso;
     private final android.os.Handler handlerUI = new android.os.Handler(android.os.Looper.getMainLooper());
+    private View layoutBarraInferiorReproductor;
+    private View zonaInferiorToque;
+    private View btnInicioRepro, btnConfiguracionRepro, btnFavoritosRepro, btnMasVistosRepro, btnScreenOffRepro;
+    private View btnShuffleOffRepro, btnShuffleFolderRepro, btnShuffleCategoryRepro, btnShuffleGlobalRepro;
+    private ImageView imgShuffleOffRepro, imgShuffleFolderRepro, imgShuffleCategoryRepro, imgShuffleGlobalRepro;
+    private TextView txtShuffleOffRepro, txtShuffleFolderRepro, txtShuffleCategoryRepro, txtShuffleGlobalRepro;
+    private LinearLayout layoutBotonesModosRepro;
+
+    private final Runnable runnableOcultarBarraInferior = () -> {
+        if (layoutBarraInferiorReproductor != null) layoutBarraInferiorReproductor.setVisibility(View.GONE);
+    };
+
     private final Runnable runnableOcultarUI = () -> {
         if (!isUserHolding) {
             if (imgFeedback != null) imgFeedback.setVisibility(View.GONE);
@@ -271,6 +283,55 @@ public class MainActivity extends AppCompatActivity {
         txtShuffleFolder = findViewById(R.id.txtShuffleFolder);
         txtShuffleCategory = findViewById(R.id.txtShuffleCategory);
         txtShuffleGlobal = findViewById(R.id.txtShuffleGlobal);
+
+        layoutBarraInferiorReproductor = findViewById(R.id.layoutBarraInferiorReproductor);
+        zonaInferiorToque = findViewById(R.id.zonaInferiorToque);
+
+        btnInicioRepro = findViewById(R.id.btnInicioRepro);
+        btnConfiguracionRepro = findViewById(R.id.btnConfiguracionRepro);
+        btnFavoritosRepro = findViewById(R.id.btnFavoritosRepro);
+        btnMasVistosRepro = findViewById(R.id.btnMasVistosRepro);
+        btnScreenOffRepro = findViewById(R.id.btnScreenOffRepro);
+
+        btnShuffleOffRepro = findViewById(R.id.btnShuffleOffRepro);
+        btnShuffleFolderRepro = findViewById(R.id.btnShuffleFolderRepro);
+        btnShuffleCategoryRepro = findViewById(R.id.btnShuffleCategoryRepro);
+        btnShuffleGlobalRepro = findViewById(R.id.btnShuffleGlobalRepro);
+
+        imgShuffleOffRepro = findViewById(R.id.imgShuffleOffRepro);
+        imgShuffleFolderRepro = findViewById(R.id.imgShuffleFolderRepro);
+        imgShuffleCategoryRepro = findViewById(R.id.imgShuffleCategoryRepro);
+        imgShuffleGlobalRepro = findViewById(R.id.imgShuffleGlobalRepro);
+
+        txtShuffleOffRepro = findViewById(R.id.txtShuffleOffRepro);
+        txtShuffleFolderRepro = findViewById(R.id.txtShuffleFolderRepro);
+        txtShuffleCategoryRepro = findViewById(R.id.txtShuffleCategoryRepro);
+        txtShuffleGlobalRepro = findViewById(R.id.txtShuffleGlobalRepro);
+        layoutBotonesModosRepro = findViewById(R.id.layoutBotonesModosRepro);
+
+        if (zonaInferiorToque != null) {
+            zonaInferiorToque.setOnTouchListener((v, event) -> {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    mostrarBarraInferiorTemporal();
+                    return true;
+                }
+                return true;
+            });
+        }
+
+        if (btnInicioRepro != null) btnInicioRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); escanearYRefrescar(); });
+        if (btnConfiguracionRepro != null) btnConfiguracionRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); mostrarDialogoConfiguracion(); });
+        if (btnFavoritosRepro != null) btnFavoritosRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); mostrarFavoritosDeCategoria(); });
+        if (btnMasVistosRepro != null) btnMasVistosRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); mostrarMasVistosDeCategoria(); });
+        if (btnScreenOffRepro != null) btnScreenOffRepro.setOnClickListener(v -> {
+            mostrarBarraInferiorTemporal();
+            btnScreenOff.performClick();
+        });
+
+        if (btnShuffleOffRepro != null) btnShuffleOffRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(0); });
+        if (btnShuffleFolderRepro != null) btnShuffleFolderRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(1); });
+        if (btnShuffleCategoryRepro != null) btnShuffleCategoryRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(2); });
+        if (btnShuffleGlobalRepro != null) btnShuffleGlobalRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(3); });
 
         capaZonasToque = findViewById(R.id.capaZonasToque);
         zonaIzquierda = findViewById(R.id.zonaIzquierda);
@@ -574,8 +635,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void actualizarBarraModos() {
-        if (layoutBotonesModos == null) return;
-        layoutBotonesModos.removeAllViews();
+        if (layoutBotonesModos != null) layoutBotonesModos.removeAllViews();
+        if (layoutBotonesModosRepro != null) layoutBotonesModosRepro.removeAllViews();
         int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
 
         for (int i = 0; i < userModes.size(); i++) {
@@ -587,7 +648,7 @@ public class MainActivity extends AppCompatActivity {
             btn.setText(m.name.toUpperCase());
             btn.setTextColor(activeModeIndex == i ? android.graphics.Color.parseColor("#BB86FC") : textColor);
             btn.setTextSize(12);
-            btn.setPadding(20, 0, 20, 0);
+            btn.setPadding(15, 0, 15, 0);
             btn.setGravity(android.view.Gravity.CENTER);
             btn.setTypeface(null, android.graphics.Typeface.BOLD);
             
@@ -598,8 +659,27 @@ public class MainActivity extends AppCompatActivity {
             typedArray.recycle();
             
             btn.setOnClickListener(v -> activarModo(index));
-            layoutBotonesModos.addView(btn, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
+            if (layoutBotonesModos != null) {
+                layoutBotonesModos.addView(btn, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
+            }
+
+            TextView btnRepro = new TextView(this);
+            btnRepro.setText(m.name.toUpperCase());
+            btnRepro.setTextColor(activeModeIndex == i ? android.graphics.Color.parseColor("#BB86FC") : android.graphics.Color.WHITE);
+            btnRepro.setTextSize(12);
+            btnRepro.setPadding(15, 0, 15, 0);
+            btnRepro.setGravity(android.view.Gravity.CENTER);
+            btnRepro.setTypeface(null, android.graphics.Typeface.BOLD);
+            btnRepro.setBackgroundResource(backgroundResource);
+            btnRepro.setOnClickListener(v -> {
+                mostrarBarraInferiorTemporal();
+                activarModo(index);
+            });
+            if (layoutBotonesModosRepro != null) {
+                layoutBotonesModosRepro.addView(btnRepro, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
+            }
         }
     }
 
@@ -800,6 +880,15 @@ public class MainActivity extends AppCompatActivity {
         return mejorRaiz;
     }
 
+    private void mostrarBarraInferiorTemporal() {
+        if (layoutBarraInferiorReproductor != null) {
+            layoutBarraInferiorReproductor.setVisibility(View.VISIBLE);
+            handlerUI.removeCallbacks(runnableOcultarBarraInferior);
+            handlerUI.postDelayed(runnableOcultarBarraInferior, 5000);
+        }
+        mostrarFeedback(0, android.view.Gravity.CENTER);
+    }
+
     private void activarModoAleatorioEspecifico(int nuevoModo) {
         shuffleMode = nuevoModo;
         actualizarBotonShuffleUI();
@@ -841,25 +930,18 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
 
-        if (imgShuffleOff != null) {
-            imgShuffleOff.setColorFilter(shuffleMode == 0 ? colorActive : colorOff);
-            txtShuffleOff.setTextColor(shuffleMode == 0 ? colorActive : textOff);
-        }
-        if (imgShuffleFolder != null) {
-            imgShuffleFolder.setColorFilter(shuffleMode == 1 ? colorActive : colorOff);
-            txtShuffleFolder.setTextColor(shuffleMode == 1 ? colorActive : textOff);
-        }
-        if (imgShuffleCategory != null) {
-            imgShuffleCategory.setColorFilter(shuffleMode == 2 ? colorActive : colorOff);
-            txtShuffleCategory.setTextColor(shuffleMode == 2 ? colorActive : textOff);
-        }
-        if (imgShuffleGlobal != null) {
-            imgShuffleGlobal.setColorFilter(shuffleMode == 3 ? colorActive : colorOff);
-            txtShuffleGlobal.setTextColor(shuffleMode == 3 ? colorActive : textOff);
-        }
-        if (btnShuffle != null) {
-            btnShuffle.setColorFilter(colorActive);
-        }
+        // Barra Explorador
+        if (imgShuffleOff != null) { imgShuffleOff.setColorFilter(shuffleMode == 0 ? colorActive : colorOff); txtShuffleOff.setTextColor(shuffleMode == 0 ? colorActive : textOff); }
+        if (imgShuffleFolder != null) { imgShuffleFolder.setColorFilter(shuffleMode == 1 ? colorActive : colorOff); txtShuffleFolder.setTextColor(shuffleMode == 1 ? colorActive : textOff); }
+        if (imgShuffleCategory != null) { imgShuffleCategory.setColorFilter(shuffleMode == 2 ? colorActive : colorOff); txtShuffleCategory.setTextColor(shuffleMode == 2 ? colorActive : textOff); }
+        if (imgShuffleGlobal != null) { imgShuffleGlobal.setColorFilter(shuffleMode == 3 ? colorActive : colorOff); txtShuffleGlobal.setTextColor(shuffleMode == 3 ? colorActive : textOff); }
+        if (btnShuffle != null) btnShuffle.setColorFilter(colorActive);
+
+        // Barra Reproductor
+        if (imgShuffleOffRepro != null) { imgShuffleOffRepro.setColorFilter(shuffleMode == 0 ? colorActive : colorOff); txtShuffleOffRepro.setTextColor(shuffleMode == 0 ? colorActive : textOff); }
+        if (imgShuffleFolderRepro != null) { imgShuffleFolderRepro.setColorFilter(shuffleMode == 1 ? colorActive : colorOff); txtShuffleFolderRepro.setTextColor(shuffleMode == 1 ? colorActive : textOff); }
+        if (imgShuffleCategoryRepro != null) { imgShuffleCategoryRepro.setColorFilter(shuffleMode == 2 ? colorActive : colorOff); txtShuffleCategoryRepro.setTextColor(shuffleMode == 2 ? colorActive : textOff); }
+        if (imgShuffleGlobalRepro != null) { imgShuffleGlobalRepro.setColorFilter(shuffleMode == 3 ? colorActive : colorOff); txtShuffleGlobalRepro.setTextColor(shuffleMode == 3 ? colorActive : textOff); }
 
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
@@ -1510,6 +1592,7 @@ public class MainActivity extends AppCompatActivity {
         int txt = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
         root.setBackgroundColor(bg); if (contenedorExplorador != null) contenedorExplorador.setBackgroundColor(bg);
         if (layoutBarraInferior != null) layoutBarraInferior.setBackgroundColor(bar);
+        if (layoutBarraInferiorReproductor != null) layoutBarraInferiorReproductor.setBackgroundColor(bar);
         if (layoutBarraSuperior != null) layoutBarraSuperior.setBackgroundColor(bar);
         if (txtRutaActual != null) txtRutaActual.setTextColor(txt);
         tintView(btnConfiguracion, txt);
@@ -1517,6 +1600,12 @@ public class MainActivity extends AppCompatActivity {
         tintView(btnFavoritos, txt);
         tintView(btnMasVistos, txt);
         tintView(btnScreenOff, isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : txt);
+
+        tintView(btnConfiguracionRepro, txt);
+        tintView(btnInicioRepro, txt);
+        tintView(btnFavoritosRepro, txt);
+        tintView(btnMasVistosRepro, txt);
+        tintView(btnScreenOffRepro, isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : txt);
     }
 
     private boolean esFavorito(File file) {
