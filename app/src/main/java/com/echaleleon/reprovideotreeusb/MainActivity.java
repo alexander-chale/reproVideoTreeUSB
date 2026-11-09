@@ -904,44 +904,67 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void actualizarBotonShuffleUI() {
-        int colorOff = android.graphics.Color.parseColor("#66FFFFFF");
-        int textOff = android.graphics.Color.parseColor("#66FFFFFF");
+        // Colores para la barra del explorador (se adapta a modo noche / modo claro)
+        int colorOffExp = configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#888888");
+        int textOffExp = configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#666666");
         
-        int colorActive;
+        int colorActiveExp;
+        switch (shuffleMode) {
+            case 1:
+                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#BB86FC") : android.graphics.Color.parseColor("#6200EE"); // Morado
+                break;
+            case 2:
+                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#00E676") : android.graphics.Color.parseColor("#00873D"); // Verde
+                break;
+            case 3:
+                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#FF9100") : android.graphics.Color.parseColor("#E65100"); // Naranja
+                break;
+            default:
+                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#FFFFFF") : android.graphics.Color.parseColor("#000000"); // Blanco / Negro
+                break;
+        }
+
+        // Colores para la barra del reproductor (siempre sobre fondo oscuro)
+        int colorOffRepro = android.graphics.Color.parseColor("#66FFFFFF");
+        int textOffRepro = android.graphics.Color.parseColor("#66FFFFFF");
+        int colorActiveRepro;
+        switch (shuffleMode) {
+            case 1: colorActiveRepro = android.graphics.Color.parseColor("#BB86FC"); break;
+            case 2: colorActiveRepro = android.graphics.Color.parseColor("#00E676"); break;
+            case 3: colorActiveRepro = android.graphics.Color.parseColor("#FF9100"); break;
+            default: colorActiveRepro = android.graphics.Color.parseColor("#FFFFFF"); break;
+        }
+
         String msg;
         switch (shuffleMode) {
             case 1:
-                colorActive = android.graphics.Color.parseColor("#BB86FC"); // Morado: Carpeta
                 msg = "🔀 Aleatorio: Carpeta Actual";
                 break;
             case 2:
-                colorActive = android.graphics.Color.parseColor("#00E676"); // Verde: Categoría
                 String nombreCat = carpetaReproduciendoActualmente != null ? 
                         (carpetaReproduciendoActualmente.getParentFile() != null ? carpetaReproduciendoActualmente.getParentFile().getName() : carpetaReproduciendoActualmente.getName()) : "";
                 msg = "🔀 Aleatorio: Categoría" + (nombreCat.isEmpty() ? "" : " (" + nombreCat + ")");
                 break;
             case 3:
-                colorActive = android.graphics.Color.parseColor("#FF9100"); // Naranja: General
                 msg = "🔀 Aleatorio: General (Toda la colección)";
                 break;
             default:
-                colorActive = android.graphics.Color.parseColor("#FFFFFF"); // Blanco: Ordenado
                 msg = "🔀 Modo Ordenado";
                 break;
         }
 
         // Barra Explorador
-        if (imgShuffleOff != null) { imgShuffleOff.setColorFilter(shuffleMode == 0 ? colorActive : colorOff); txtShuffleOff.setTextColor(shuffleMode == 0 ? colorActive : textOff); }
-        if (imgShuffleFolder != null) { imgShuffleFolder.setColorFilter(shuffleMode == 1 ? colorActive : colorOff); txtShuffleFolder.setTextColor(shuffleMode == 1 ? colorActive : textOff); }
-        if (imgShuffleCategory != null) { imgShuffleCategory.setColorFilter(shuffleMode == 2 ? colorActive : colorOff); txtShuffleCategory.setTextColor(shuffleMode == 2 ? colorActive : textOff); }
-        if (imgShuffleGlobal != null) { imgShuffleGlobal.setColorFilter(shuffleMode == 3 ? colorActive : colorOff); txtShuffleGlobal.setTextColor(shuffleMode == 3 ? colorActive : textOff); }
-        if (btnShuffle != null) btnShuffle.setColorFilter(colorActive);
+        if (imgShuffleOff != null) { imgShuffleOff.setColorFilter(shuffleMode == 0 ? colorActiveExp : colorOffExp); txtShuffleOff.setTextColor(shuffleMode == 0 ? colorActiveExp : textOffExp); }
+        if (imgShuffleFolder != null) { imgShuffleFolder.setColorFilter(shuffleMode == 1 ? colorActiveExp : colorOffExp); txtShuffleFolder.setTextColor(shuffleMode == 1 ? colorActiveExp : textOffExp); }
+        if (imgShuffleCategory != null) { imgShuffleCategory.setColorFilter(shuffleMode == 2 ? colorActiveExp : colorOffExp); txtShuffleCategory.setTextColor(shuffleMode == 2 ? colorActiveExp : textOffExp); }
+        if (imgShuffleGlobal != null) { imgShuffleGlobal.setColorFilter(shuffleMode == 3 ? colorActiveExp : colorOffExp); txtShuffleGlobal.setTextColor(shuffleMode == 3 ? colorActiveExp : textOffExp); }
+        if (btnShuffle != null) btnShuffle.setColorFilter(colorActiveExp);
 
         // Barra Reproductor
-        if (imgShuffleOffRepro != null) { imgShuffleOffRepro.setColorFilter(shuffleMode == 0 ? colorActive : colorOff); txtShuffleOffRepro.setTextColor(shuffleMode == 0 ? colorActive : textOff); }
-        if (imgShuffleFolderRepro != null) { imgShuffleFolderRepro.setColorFilter(shuffleMode == 1 ? colorActive : colorOff); txtShuffleFolderRepro.setTextColor(shuffleMode == 1 ? colorActive : textOff); }
-        if (imgShuffleCategoryRepro != null) { imgShuffleCategoryRepro.setColorFilter(shuffleMode == 2 ? colorActive : colorOff); txtShuffleCategoryRepro.setTextColor(shuffleMode == 2 ? colorActive : textOff); }
-        if (imgShuffleGlobalRepro != null) { imgShuffleGlobalRepro.setColorFilter(shuffleMode == 3 ? colorActive : colorOff); txtShuffleGlobalRepro.setTextColor(shuffleMode == 3 ? colorActive : textOff); }
+        if (imgShuffleOffRepro != null) { imgShuffleOffRepro.setColorFilter(shuffleMode == 0 ? colorActiveRepro : colorOffRepro); txtShuffleOffRepro.setTextColor(shuffleMode == 0 ? colorActiveRepro : textOffRepro); }
+        if (imgShuffleFolderRepro != null) { imgShuffleFolderRepro.setColorFilter(shuffleMode == 1 ? colorActiveRepro : colorOffRepro); txtShuffleFolderRepro.setTextColor(shuffleMode == 1 ? colorActiveRepro : textOffRepro); }
+        if (imgShuffleCategoryRepro != null) { imgShuffleCategoryRepro.setColorFilter(shuffleMode == 2 ? colorActiveRepro : colorOffRepro); txtShuffleCategoryRepro.setTextColor(shuffleMode == 2 ? colorActiveRepro : textOffRepro); }
+        if (imgShuffleGlobalRepro != null) { imgShuffleGlobalRepro.setColorFilter(shuffleMode == 3 ? colorActiveRepro : colorOffRepro); txtShuffleGlobalRepro.setTextColor(shuffleMode == 3 ? colorActiveRepro : textOffRepro); }
 
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
