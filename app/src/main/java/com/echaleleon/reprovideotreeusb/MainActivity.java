@@ -246,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
         configPilotMode = prefs.getBoolean("pilot_mode", false);
         configHideExtension = prefs.getBoolean("hide_extension", false);
         configTopCountThreshold = prefs.getInt("top_count_threshold", 5);
+        shuffleMode = prefs.getInt("shuffle_mode", 0);
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         aplicarTemaFondo();
@@ -694,6 +695,7 @@ public class MainActivity extends AppCompatActivity {
         configPilotMode = p.getBoolean(prefix + "pilot_mode", false);
         configHideExtension = p.getBoolean(prefix + "hide_extension", false);
         configTopCountThreshold = p.getInt(prefix + "top_count_threshold", 5);
+        shuffleMode = p.getInt(prefix + "shuffle_mode", p.getInt("shuffle_mode", 0));
         
         aplicarTemaFondo();
         if (carpetaReproduciendoActualmente != null) navegarACarpeta(carpetaReproduciendoActualmente);
@@ -856,6 +858,13 @@ public class MainActivity extends AppCompatActivity {
     private void activarModoAleatorioEspecifico(int nuevoModo) {
         android.util.Log.d("ReproVideoTree", "activarModoAleatorioEspecifico invocado: " + nuevoModo);
         shuffleMode = nuevoModo;
+        
+        String prefix = activeModeIndex == -1 ? "" : "m" + activeModeIndex + "_";
+        SharedPreferences.Editor editor = getSharedPreferences("config_repro", MODE_PRIVATE).edit();
+        editor.putInt("shuffle_mode", shuffleMode);
+        editor.putInt(prefix + "shuffle_mode", shuffleMode);
+        editor.apply();
+
         actualizarBotonShuffleUI();
         mostrarFeedback(0, android.view.Gravity.CENTER);
         
