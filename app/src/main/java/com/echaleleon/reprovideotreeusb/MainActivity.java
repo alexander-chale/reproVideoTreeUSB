@@ -202,6 +202,41 @@ public class MainActivity extends AppCompatActivity {
         btnMasVistos = findViewById(R.id.btnMasVistos);
         btnToggleFavorito = findViewById(R.id.btnToggleFavorito);
 
+        contenedorVideo = findViewById(R.id.contenedorVideo);
+        playerView = findViewById(R.id.playerView);
+        txtNombreVideo = findViewById(R.id.txtNombreVideo);
+
+        layoutProgreso = findViewById(R.id.layoutProgreso);
+        seekBarVideo = findViewById(R.id.seekBarVideo);
+        txtTiempoActual = findViewById(R.id.txtTiempoActual);
+        txtTiempoRestante = findViewById(R.id.txtTiempoRestante);
+        imgFeedback = findViewById(R.id.imgFeedback);
+        pbVolumen = findViewById(R.id.pbVolumen);
+        pbBrillo = findViewById(R.id.pbBrillo);
+
+        btnShuffle = findViewById(R.id.btnShuffle);
+
+        btnShuffleOff = findViewById(R.id.btnShuffleOff);
+        btnShuffleFolder = findViewById(R.id.btnShuffleFolder);
+        btnShuffleCategory = findViewById(R.id.btnShuffleCategory);
+        btnShuffleGlobal = findViewById(R.id.btnShuffleGlobal);
+
+        imgShuffleOff = findViewById(R.id.imgShuffleOff);
+        imgShuffleFolder = findViewById(R.id.imgShuffleFolder);
+        imgShuffleCategory = findViewById(R.id.imgShuffleCategory);
+        imgShuffleGlobal = findViewById(R.id.imgShuffleGlobal);
+
+        txtShuffleOff = findViewById(R.id.txtShuffleOff);
+        txtShuffleFolder = findViewById(R.id.txtShuffleFolder);
+        txtShuffleCategory = findViewById(R.id.txtShuffleCategory);
+        txtShuffleGlobal = findViewById(R.id.txtShuffleGlobal);
+
+        zonaInferiorToque = findViewById(R.id.zonaInferiorToque);
+        capaZonasToque = findViewById(R.id.capaZonasToque);
+        zonaIzquierda = findViewById(R.id.zonaIzquierda);
+        zonaCentro = findViewById(R.id.zonaCentro);
+        zonaDerecha = findViewById(R.id.zonaDerecha);
+
         configItemHeight = prefs.getInt("item_height", 100);
         configTextSize = prefs.getInt("text_size", 32);
         configDefaultFolder = prefs.getString("default_folder", "Videos Musicales");
@@ -255,34 +290,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        contenedorVideo = findViewById(R.id.contenedorVideo);
-        playerView = findViewById(R.id.playerView);
-        txtNombreVideo = findViewById(R.id.txtNombreVideo);
-
-        layoutProgreso = findViewById(R.id.layoutProgreso);
-        seekBarVideo = findViewById(R.id.seekBarVideo);
-        txtTiempoActual = findViewById(R.id.txtTiempoActual);
-        txtTiempoRestante = findViewById(R.id.txtTiempoRestante);
-        imgFeedback = findViewById(R.id.imgFeedback);
-        pbVolumen = findViewById(R.id.pbVolumen);
-        pbBrillo = findViewById(R.id.pbBrillo);
-
-        btnShuffleOff = findViewById(R.id.btnShuffleOff);
-        btnShuffleFolder = findViewById(R.id.btnShuffleFolder);
-        btnShuffleCategory = findViewById(R.id.btnShuffleCategory);
-        btnShuffleGlobal = findViewById(R.id.btnShuffleGlobal);
-
-        imgShuffleOff = findViewById(R.id.imgShuffleOff);
-        imgShuffleFolder = findViewById(R.id.imgShuffleFolder);
-        imgShuffleCategory = findViewById(R.id.imgShuffleCategory);
-        imgShuffleGlobal = findViewById(R.id.imgShuffleGlobal);
-
-        txtShuffleOff = findViewById(R.id.txtShuffleOff);
-        txtShuffleFolder = findViewById(R.id.txtShuffleFolder);
-        txtShuffleCategory = findViewById(R.id.txtShuffleCategory);
-        txtShuffleGlobal = findViewById(R.id.txtShuffleGlobal);
-
-        zonaInferiorToque = findViewById(R.id.zonaInferiorToque);
         if (zonaInferiorToque != null) {
             zonaInferiorToque.setOnTouchListener((v, event) -> {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
