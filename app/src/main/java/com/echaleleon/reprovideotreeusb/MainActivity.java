@@ -75,10 +75,11 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imgFeedback;
     private ProgressBar pbVolumen;
     private ProgressBar pbBrillo;
-    private ImageButton btnShuffle;
+    private android.widget.ImageButton btnShuffle;
     private View btnShuffleOff, btnShuffleFolder, btnShuffleCategory, btnShuffleGlobal;
     private ImageView imgShuffleOff, imgShuffleFolder, imgShuffleCategory, imgShuffleGlobal;
     private TextView txtShuffleOff, txtShuffleFolder, txtShuffleCategory, txtShuffleGlobal;
+    private View zonaInferiorToque;
     private int shuffleMode = 0; // 0 = Ordenado, 1 = Carpeta Actual, 2 = Categoría Padre, 3 = General
     private boolean isUserHolding = false;
     private float startY;
@@ -89,22 +90,12 @@ public class MainActivity extends AppCompatActivity {
     private final android.os.Handler handlerProgreso = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable runnableProgreso;
     private final android.os.Handler handlerUI = new android.os.Handler(android.os.Looper.getMainLooper());
-    private View layoutBarraInferiorReproductor;
-    private View zonaInferiorToque;
-    private View btnInicioRepro, btnConfiguracionRepro, btnFavoritosRepro, btnMasVistosRepro, btnScreenOffRepro;
-    private View btnShuffleOffRepro, btnShuffleFolderRepro, btnShuffleCategoryRepro, btnShuffleGlobalRepro;
-    private ImageView imgShuffleOffRepro, imgShuffleFolderRepro, imgShuffleCategoryRepro, imgShuffleGlobalRepro;
-    private TextView txtShuffleOffRepro, txtShuffleFolderRepro, txtShuffleCategoryRepro, txtShuffleGlobalRepro;
-    private LinearLayout layoutBotonesModosRepro;
-
-    private final Runnable runnableOcultarBarraInferior = () -> {
-        if (layoutBarraInferiorReproductor != null) layoutBarraInferiorReproductor.setVisibility(View.GONE);
-    };
 
     private final Runnable runnableOcultarUI = () -> {
         if (!isUserHolding) {
             if (imgFeedback != null) imgFeedback.setVisibility(View.GONE);
             if (layoutProgreso != null) layoutProgreso.setVisibility(View.GONE);
+            if (zonaInferiorToque != null) zonaInferiorToque.setVisibility(View.VISIBLE);
         }
     };
 
@@ -234,12 +225,20 @@ public class MainActivity extends AppCompatActivity {
         if (btnMasVistos != null) btnMasVistos.setOnClickListener(v -> mostrarMasVistosDeCategoria());
         if (btnToggleFavorito != null) {
             btnToggleFavorito.setOnClickListener(v -> {
-                if (exoPlayer != null && videosEnReproduccionActual != null) {
+                mostrarFeedback(0, android.view.Gravity.CENTER);
+                File currentFile = null;
+                if (exoPlayer != null && exoPlayer.getCurrentMediaItem() != null && exoPlayer.getCurrentMediaItem().localConfiguration != null) {
+                    String path = exoPlayer.getCurrentMediaItem().localConfiguration.uri.getPath();
+                    if (path != null) currentFile = new File(path);
+                }
+                if (currentFile == null && videosEnReproduccionActual != null && exoPlayer != null) {
                     int idx = exoPlayer.getCurrentMediaItemIndex();
                     if (idx >= 0 && idx < videosEnReproduccionActual.size()) {
-                        File currentFile = videosEnReproduccionActual.get(idx);
-                        toggleFavorito(currentFile);
+                        currentFile = videosEnReproduccionActual.get(idx);
                     }
+                }
+                if (currentFile != null) {
+                    toggleFavorito(currentFile);
                 }
             });
         }
@@ -267,7 +266,6 @@ public class MainActivity extends AppCompatActivity {
         imgFeedback = findViewById(R.id.imgFeedback);
         pbVolumen = findViewById(R.id.pbVolumen);
         pbBrillo = findViewById(R.id.pbBrillo);
-        btnShuffle = findViewById(R.id.btnShuffle);
 
         btnShuffleOff = findViewById(R.id.btnShuffleOff);
         btnShuffleFolder = findViewById(R.id.btnShuffleFolder);
@@ -284,54 +282,16 @@ public class MainActivity extends AppCompatActivity {
         txtShuffleCategory = findViewById(R.id.txtShuffleCategory);
         txtShuffleGlobal = findViewById(R.id.txtShuffleGlobal);
 
-        layoutBarraInferiorReproductor = findViewById(R.id.layoutBarraInferiorReproductor);
         zonaInferiorToque = findViewById(R.id.zonaInferiorToque);
-
-        btnInicioRepro = findViewById(R.id.btnInicioRepro);
-        btnConfiguracionRepro = findViewById(R.id.btnConfiguracionRepro);
-        btnFavoritosRepro = findViewById(R.id.btnFavoritosRepro);
-        btnMasVistosRepro = findViewById(R.id.btnMasVistosRepro);
-        btnScreenOffRepro = findViewById(R.id.btnScreenOffRepro);
-
-        btnShuffleOffRepro = findViewById(R.id.btnShuffleOffRepro);
-        btnShuffleFolderRepro = findViewById(R.id.btnShuffleFolderRepro);
-        btnShuffleCategoryRepro = findViewById(R.id.btnShuffleCategoryRepro);
-        btnShuffleGlobalRepro = findViewById(R.id.btnShuffleGlobalRepro);
-
-        imgShuffleOffRepro = findViewById(R.id.imgShuffleOffRepro);
-        imgShuffleFolderRepro = findViewById(R.id.imgShuffleFolderRepro);
-        imgShuffleCategoryRepro = findViewById(R.id.imgShuffleCategoryRepro);
-        imgShuffleGlobalRepro = findViewById(R.id.imgShuffleGlobalRepro);
-
-        txtShuffleOffRepro = findViewById(R.id.txtShuffleOffRepro);
-        txtShuffleFolderRepro = findViewById(R.id.txtShuffleFolderRepro);
-        txtShuffleCategoryRepro = findViewById(R.id.txtShuffleCategoryRepro);
-        txtShuffleGlobalRepro = findViewById(R.id.txtShuffleGlobalRepro);
-        layoutBotonesModosRepro = findViewById(R.id.layoutBotonesModosRepro);
-
         if (zonaInferiorToque != null) {
             zonaInferiorToque.setOnTouchListener((v, event) -> {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    mostrarBarraInferiorTemporal();
+                    mostrarFeedback(0, android.view.Gravity.CENTER);
                     return true;
                 }
                 return true;
             });
         }
-
-        if (btnInicioRepro != null) btnInicioRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); escanearYRefrescar(); });
-        if (btnConfiguracionRepro != null) btnConfiguracionRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); mostrarDialogoConfiguracion(); });
-        if (btnFavoritosRepro != null) btnFavoritosRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); mostrarFavoritosDeCategoria(); });
-        if (btnMasVistosRepro != null) btnMasVistosRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); mostrarMasVistosDeCategoria(); });
-        if (btnScreenOffRepro != null) btnScreenOffRepro.setOnClickListener(v -> {
-            mostrarBarraInferiorTemporal();
-            btnScreenOff.performClick();
-        });
-
-        if (btnShuffleOffRepro != null) btnShuffleOffRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(0); });
-        if (btnShuffleFolderRepro != null) btnShuffleFolderRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(1); });
-        if (btnShuffleCategoryRepro != null) btnShuffleCategoryRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(2); });
-        if (btnShuffleGlobalRepro != null) btnShuffleGlobalRepro.setOnClickListener(v -> { mostrarBarraInferiorTemporal(); activarModoAleatorioEspecifico(3); });
 
         capaZonasToque = findViewById(R.id.capaZonasToque);
         zonaIzquierda = findViewById(R.id.zonaIzquierda);
@@ -369,11 +329,35 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if (btnShuffleOff != null) btnShuffleOff.setOnClickListener(v -> activarModoAleatorioEspecifico(0));
-        if (btnShuffleFolder != null) btnShuffleFolder.setOnClickListener(v -> activarModoAleatorioEspecifico(1));
-        if (btnShuffleCategory != null) btnShuffleCategory.setOnClickListener(v -> activarModoAleatorioEspecifico(2));
-        if (btnShuffleGlobal != null) btnShuffleGlobal.setOnClickListener(v -> activarModoAleatorioEspecifico(3));
-        if (btnShuffle != null) btnShuffle.setOnClickListener(v -> activarModoAleatorioEspecifico((shuffleMode + 1) % 4));
+        btnShuffle = findViewById(R.id.btnShuffle);
+        if (btnShuffle != null) {
+            btnShuffle.setOnClickListener(v -> activarModoAleatorioEspecifico((shuffleMode + 1) % 4));
+        }
+
+        if (layoutProgreso != null) {
+            layoutProgreso.setOnClickListener(v -> mostrarFeedback(0, android.view.Gravity.CENTER));
+        }
+
+        View.OnClickListener clickShuffle0 = v -> activarModoAleatorioEspecifico(0);
+        View.OnClickListener clickShuffle1 = v -> activarModoAleatorioEspecifico(1);
+        View.OnClickListener clickShuffle2 = v -> activarModoAleatorioEspecifico(2);
+        View.OnClickListener clickShuffle3 = v -> activarModoAleatorioEspecifico(3);
+
+        if (btnShuffleOff != null) btnShuffleOff.setOnClickListener(clickShuffle0);
+        if (imgShuffleOff != null) imgShuffleOff.setOnClickListener(clickShuffle0);
+        if (txtShuffleOff != null) txtShuffleOff.setOnClickListener(clickShuffle0);
+
+        if (btnShuffleFolder != null) btnShuffleFolder.setOnClickListener(clickShuffle1);
+        if (imgShuffleFolder != null) imgShuffleFolder.setOnClickListener(clickShuffle1);
+        if (txtShuffleFolder != null) txtShuffleFolder.setOnClickListener(clickShuffle1);
+
+        if (btnShuffleCategory != null) btnShuffleCategory.setOnClickListener(clickShuffle2);
+        if (imgShuffleCategory != null) imgShuffleCategory.setOnClickListener(clickShuffle2);
+        if (txtShuffleCategory != null) txtShuffleCategory.setOnClickListener(clickShuffle2);
+
+        if (btnShuffleGlobal != null) btnShuffleGlobal.setOnClickListener(clickShuffle3);
+        if (imgShuffleGlobal != null) imgShuffleGlobal.setOnClickListener(clickShuffle3);
+        if (txtShuffleGlobal != null) txtShuffleGlobal.setOnClickListener(clickShuffle3);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
@@ -636,7 +620,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void actualizarBarraModos() {
         if (layoutBotonesModos != null) layoutBotonesModos.removeAllViews();
-        if (layoutBotonesModosRepro != null) layoutBotonesModosRepro.removeAllViews();
         int textColor = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
 
         for (int i = 0; i < userModes.size(); i++) {
@@ -661,23 +644,6 @@ public class MainActivity extends AppCompatActivity {
             btn.setOnClickListener(v -> activarModo(index));
             if (layoutBotonesModos != null) {
                 layoutBotonesModos.addView(btn, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
-            }
-
-            TextView btnRepro = new TextView(this);
-            btnRepro.setText(m.name.toUpperCase());
-            btnRepro.setTextColor(activeModeIndex == i ? android.graphics.Color.parseColor("#BB86FC") : android.graphics.Color.WHITE);
-            btnRepro.setTextSize(12);
-            btnRepro.setPadding(15, 0, 15, 0);
-            btnRepro.setGravity(android.view.Gravity.CENTER);
-            btnRepro.setTypeface(null, android.graphics.Typeface.BOLD);
-            btnRepro.setBackgroundResource(backgroundResource);
-            btnRepro.setOnClickListener(v -> {
-                mostrarBarraInferiorTemporal();
-                activarModo(index);
-            });
-            if (layoutBotonesModosRepro != null) {
-                layoutBotonesModosRepro.addView(btnRepro, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
             }
         }
@@ -880,20 +846,13 @@ public class MainActivity extends AppCompatActivity {
         return mejorRaiz;
     }
 
-    private void mostrarBarraInferiorTemporal() {
-        if (layoutBarraInferiorReproductor != null) {
-            layoutBarraInferiorReproductor.setVisibility(View.VISIBLE);
-            handlerUI.removeCallbacks(runnableOcultarBarraInferior);
-            handlerUI.postDelayed(runnableOcultarBarraInferior, 5000);
-        }
-        mostrarFeedback(0, android.view.Gravity.CENTER);
-    }
-
     private void activarModoAleatorioEspecifico(int nuevoModo) {
+        android.util.Log.d("ReproVideoTree", "activarModoAleatorioEspecifico invocado: " + nuevoModo);
         shuffleMode = nuevoModo;
         actualizarBotonShuffleUI();
+        mostrarFeedback(0, android.view.Gravity.CENTER);
         
-        if (contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE && !videosEnReproduccionActual.isEmpty()) {
+        if (contenedorVideo != null && contenedorVideo.getVisibility() == View.VISIBLE && videosEnReproduccionActual != null && !videosEnReproduccionActual.isEmpty()) {
             int currentIndex = exoPlayer != null ? exoPlayer.getCurrentMediaItemIndex() : 0;
             File videoActual = (currentIndex >= 0 && currentIndex < videosEnReproduccionActual.size()) ? 
                                videosEnReproduccionActual.get(currentIndex) : null;
@@ -904,35 +863,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void actualizarBotonShuffleUI() {
-        // Colores para la barra del explorador (se adapta a modo noche / modo claro)
-        int colorOffExp = configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#888888");
-        int textOffExp = configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#666666");
+        actualizarBotonShuffleUI(true);
+    }
+
+    private void actualizarBotonShuffleUI(boolean showToast) {
+        // Colores para botones inactivos adaptados al tema
+        int colorOffExp = configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#212121");
+        int textOffExp = configNightMode ? android.graphics.Color.parseColor("#888888") : android.graphics.Color.parseColor("#212121");
         
-        int colorActiveExp;
+        // Color activo para el explorador (según tema Noche vs Día)
+        int colorActiveExplorer;
         switch (shuffleMode) {
             case 1:
-                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#BB86FC") : android.graphics.Color.parseColor("#6200EE"); // Morado
+                colorActiveExplorer = configNightMode ? android.graphics.Color.parseColor("#BB86FC") : android.graphics.Color.parseColor("#6200EE");
                 break;
             case 2:
-                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#00E676") : android.graphics.Color.parseColor("#00873D"); // Verde
+                colorActiveExplorer = configNightMode ? android.graphics.Color.parseColor("#00E676") : android.graphics.Color.parseColor("#00873D");
                 break;
             case 3:
-                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#FF9100") : android.graphics.Color.parseColor("#E65100"); // Naranja
+                colorActiveExplorer = configNightMode ? android.graphics.Color.parseColor("#FF9100") : android.graphics.Color.parseColor("#E65100");
                 break;
             default:
-                colorActiveExp = configNightMode ? android.graphics.Color.parseColor("#FFFFFF") : android.graphics.Color.parseColor("#000000"); // Blanco / Negro
+                colorActiveExplorer = configNightMode ? android.graphics.Color.parseColor("#FFFFFF") : android.graphics.Color.parseColor("#1976D2");
                 break;
         }
 
-        // Colores para la barra del reproductor (siempre sobre fondo oscuro)
-        int colorOffRepro = android.graphics.Color.parseColor("#66FFFFFF");
-        int textOffRepro = android.graphics.Color.parseColor("#66FFFFFF");
-        int colorActiveRepro;
+        // Color activo para el reproductor de video (siempre fondo oscuro #D9000000)
+        int colorActiveVideoPlayer;
         switch (shuffleMode) {
-            case 1: colorActiveRepro = android.graphics.Color.parseColor("#BB86FC"); break;
-            case 2: colorActiveRepro = android.graphics.Color.parseColor("#00E676"); break;
-            case 3: colorActiveRepro = android.graphics.Color.parseColor("#FF9100"); break;
-            default: colorActiveRepro = android.graphics.Color.parseColor("#FFFFFF"); break;
+            case 1:
+                colorActiveVideoPlayer = android.graphics.Color.parseColor("#BB86FC"); // Morado
+                break;
+            case 2:
+                colorActiveVideoPlayer = android.graphics.Color.parseColor("#00E676"); // Verde
+                break;
+            case 3:
+                colorActiveVideoPlayer = android.graphics.Color.parseColor("#FF9100"); // Naranja
+                break;
+            default:
+                colorActiveVideoPlayer = android.graphics.Color.parseColor("#FFFFFF"); // Blanco Puro
+                break;
         }
 
         String msg;
@@ -953,20 +923,18 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
 
-        // Barra Explorador
-        if (imgShuffleOff != null) { imgShuffleOff.setColorFilter(shuffleMode == 0 ? colorActiveExp : colorOffExp); txtShuffleOff.setTextColor(shuffleMode == 0 ? colorActiveExp : textOffExp); }
-        if (imgShuffleFolder != null) { imgShuffleFolder.setColorFilter(shuffleMode == 1 ? colorActiveExp : colorOffExp); txtShuffleFolder.setTextColor(shuffleMode == 1 ? colorActiveExp : textOffExp); }
-        if (imgShuffleCategory != null) { imgShuffleCategory.setColorFilter(shuffleMode == 2 ? colorActiveExp : colorOffExp); txtShuffleCategory.setTextColor(shuffleMode == 2 ? colorActiveExp : textOffExp); }
-        if (imgShuffleGlobal != null) { imgShuffleGlobal.setColorFilter(shuffleMode == 3 ? colorActiveExp : colorOffExp); txtShuffleGlobal.setTextColor(shuffleMode == 3 ? colorActiveExp : textOffExp); }
-        if (btnShuffle != null) btnShuffle.setColorFilter(colorActiveExp);
+        if (btnShuffle != null) {
+            btnShuffle.setColorFilter(colorActiveVideoPlayer, android.graphics.PorterDuff.Mode.SRC_IN);
+        }
 
-        // Barra Reproductor
-        if (imgShuffleOffRepro != null) { imgShuffleOffRepro.setColorFilter(shuffleMode == 0 ? colorActiveRepro : colorOffRepro); txtShuffleOffRepro.setTextColor(shuffleMode == 0 ? colorActiveRepro : textOffRepro); }
-        if (imgShuffleFolderRepro != null) { imgShuffleFolderRepro.setColorFilter(shuffleMode == 1 ? colorActiveRepro : colorOffRepro); txtShuffleFolderRepro.setTextColor(shuffleMode == 1 ? colorActiveRepro : textOffRepro); }
-        if (imgShuffleCategoryRepro != null) { imgShuffleCategoryRepro.setColorFilter(shuffleMode == 2 ? colorActiveRepro : colorOffRepro); txtShuffleCategoryRepro.setTextColor(shuffleMode == 2 ? colorActiveRepro : textOffRepro); }
-        if (imgShuffleGlobalRepro != null) { imgShuffleGlobalRepro.setColorFilter(shuffleMode == 3 ? colorActiveRepro : colorOffRepro); txtShuffleGlobalRepro.setTextColor(shuffleMode == 3 ? colorActiveRepro : textOffRepro); }
+        if (imgShuffleOff != null) { imgShuffleOff.setColorFilter(shuffleMode == 0 ? colorActiveExplorer : colorOffExp, android.graphics.PorterDuff.Mode.SRC_IN); txtShuffleOff.setTextColor(shuffleMode == 0 ? colorActiveExplorer : textOffExp); }
+        if (imgShuffleFolder != null) { imgShuffleFolder.setColorFilter(shuffleMode == 1 ? colorActiveExplorer : colorOffExp, android.graphics.PorterDuff.Mode.SRC_IN); txtShuffleFolder.setTextColor(shuffleMode == 1 ? colorActiveExplorer : textOffExp); }
+        if (imgShuffleCategory != null) { imgShuffleCategory.setColorFilter(shuffleMode == 2 ? colorActiveExplorer : colorOffExp, android.graphics.PorterDuff.Mode.SRC_IN); txtShuffleCategory.setTextColor(shuffleMode == 2 ? colorActiveExplorer : textOffExp); }
+        if (imgShuffleGlobal != null) { imgShuffleGlobal.setColorFilter(shuffleMode == 3 ? colorActiveExplorer : colorOffExp, android.graphics.PorterDuff.Mode.SRC_IN); txtShuffleGlobal.setTextColor(shuffleMode == 3 ? colorActiveExplorer : textOffExp); }
 
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        if (showToast) {
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void reproducirVideosDeCarpeta(File videoInicial, File carpeta) {
@@ -978,7 +946,15 @@ public class MainActivity extends AppCompatActivity {
         isLocked = false;
         if (imgLockStatus != null) imgLockStatus.setVisibility(View.GONE);
         carpetaReproduciendoActualmente = carpeta;
-        exoPlayer.stop(); exoPlayer.clearMediaItems();
+
+        boolean isSamePlayingVideo = exoPlayer != null && exoPlayer.isPlaying() && 
+                                      videosEnReproduccionActual != null && !videosEnReproduccionActual.isEmpty() &&
+                                      exoPlayer.getCurrentMediaItemIndex() >= 0 && 
+                                      exoPlayer.getCurrentMediaItemIndex() < videosEnReproduccionActual.size() &&
+                                      videoInicial.getAbsolutePath().equals(videosEnReproduccionActual.get(exoPlayer.getCurrentMediaItemIndex()).getAbsolutePath());
+
+        long currentPos = (isSamePlayingVideo && exoPlayer != null) ? exoPlayer.getCurrentPosition() : 0;
+
         videosEnReproduccionActual.clear();
 
         if (shuffleMode == 3) {
@@ -1041,29 +1017,41 @@ public class MainActivity extends AppCompatActivity {
 
         if (videosEnReproduccionActual.isEmpty()) return;
 
+        List<MediaItem> mediaItems = new ArrayList<>();
         int startIdx = 0;
         for (int i = 0; i < videosEnReproduccionActual.size(); i++) {
             File v = videosEnReproduccionActual.get(i);
-            exoPlayer.addMediaItem(MediaItem.fromUri(Uri.fromFile(v)));
+            mediaItems.add(MediaItem.fromUri(Uri.fromFile(v)));
             if (v.getAbsolutePath().equals(videoInicial.getAbsolutePath())) startIdx = i;
         }
 
         mostrarNombreVideo(videoInicial.getName());
         contenedorExplorador.setVisibility(View.GONE); contenedorVideo.setVisibility(View.VISIBLE);
-        capaZonasToque.setVisibility(View.VISIBLE); ocultarBarrasSistema();
-        exoPlayer.seekTo(startIdx, 0);
+        capaZonasToque.setVisibility(View.VISIBLE);
+        
+        if (!isSamePlayingVideo) {
+            mostrarFeedback(0, android.view.Gravity.CENTER);
+        }
+        ocultarBarrasSistema();
 
-        if (!fromAutoTransition) {
-            SharedPreferences r = getSharedPreferences("resume_prefs", MODE_PRIVATE);
-            if (r.getString("last_video_path", "").equals(videoInicial.getAbsolutePath())) {
-                long p = r.getLong("last_video_pos", 0);
-                long dur = exoPlayer.getDuration();
-                if (p > 0 && (dur <= 0 || p < dur - 3000)) {
-                    exoPlayer.seekTo(startIdx, p);
+        if (isSamePlayingVideo) {
+            exoPlayer.setMediaItems(mediaItems, startIdx, currentPos);
+        } else {
+            exoPlayer.stop();
+            exoPlayer.setMediaItems(mediaItems, startIdx, 0);
+            if (!fromAutoTransition) {
+                SharedPreferences r = getSharedPreferences("resume_prefs", MODE_PRIVATE);
+                if (r.getString("last_video_path", "").equals(videoInicial.getAbsolutePath())) {
+                    long p = r.getLong("last_video_pos", 0);
+                    long dur = exoPlayer.getDuration();
+                    if (p > 0 && (dur <= 0 || p < dur - 3000)) {
+                        exoPlayer.seekTo(startIdx, p);
+                    }
                 }
             }
+            exoPlayer.prepare();
+            exoPlayer.play();
         }
-        exoPlayer.prepare(); exoPlayer.play();
     }
 
     private void reproducirSiguienteCarpetaGlobal() {
@@ -1256,9 +1244,10 @@ public class MainActivity extends AppCompatActivity {
             lp.gravity = gravity; imgFeedback.setLayoutParams(lp);
             imgFeedback.setVisibility(View.VISIBLE);
         }
-        layoutProgreso.setVisibility(View.VISIBLE);
+        if (layoutProgreso != null) layoutProgreso.setVisibility(View.VISIBLE);
+        if (zonaInferiorToque != null) zonaInferiorToque.setVisibility(View.GONE);
         handlerUI.removeCallbacks(runnableOcultarUI);
-        if (!isUserHolding) handlerUI.postDelayed(runnableOcultarUI, 3000);
+        if (!isUserHolding) handlerUI.postDelayed(runnableOcultarUI, 5000);
     }
 
     private void iniciarHilosProgreso() {
@@ -1599,7 +1588,9 @@ public class MainActivity extends AppCompatActivity {
     private void tintView(View v, int color) {
         if (v == null) return;
         if (v instanceof ImageView) {
-            ((ImageView) v).setColorFilter(color);
+            ((ImageView) v).setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
+        } else if (v instanceof TextView) {
+            ((TextView) v).setTextColor(color);
         } else if (v instanceof android.view.ViewGroup) {
             android.view.ViewGroup g = (android.view.ViewGroup) v;
             for (int i = 0; i < g.getChildCount(); i++) {
@@ -1615,7 +1606,6 @@ public class MainActivity extends AppCompatActivity {
         int txt = configNightMode ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
         root.setBackgroundColor(bg); if (contenedorExplorador != null) contenedorExplorador.setBackgroundColor(bg);
         if (layoutBarraInferior != null) layoutBarraInferior.setBackgroundColor(bar);
-        if (layoutBarraInferiorReproductor != null) layoutBarraInferiorReproductor.setBackgroundColor(bar);
         if (layoutBarraSuperior != null) layoutBarraSuperior.setBackgroundColor(bar);
         if (txtRutaActual != null) txtRutaActual.setTextColor(txt);
         tintView(btnConfiguracion, txt);
@@ -1623,12 +1613,7 @@ public class MainActivity extends AppCompatActivity {
         tintView(btnFavoritos, txt);
         tintView(btnMasVistos, txt);
         tintView(btnScreenOff, isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : txt);
-
-        tintView(btnConfiguracionRepro, txt);
-        tintView(btnInicioRepro, txt);
-        tintView(btnFavoritosRepro, txt);
-        tintView(btnMasVistosRepro, txt);
-        tintView(btnScreenOffRepro, isScreenOffMode ? android.graphics.Color.parseColor("#BB86FC") : txt);
+        actualizarBotonShuffleUI(false);
     }
 
     private boolean esFavorito(File file) {

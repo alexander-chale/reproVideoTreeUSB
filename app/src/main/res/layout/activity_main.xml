@@ -151,14 +151,13 @@
                     android:layout_marginTop="2dp" />
             </LinearLayout>
 
-            <!-- Grupo de 4 Botones de Modo Aleatorio (Shuffle) -->
+            <!-- Grupo de 4 Botones de Modo Aleatorio (Shuffle) en el Explorador -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:layout_marginHorizontal="4dp"
-                android:background="#22FFFFFF"
                 android:paddingHorizontal="2dp">
 
                 <LinearLayout
@@ -174,14 +173,12 @@
                         android:id="@+id/imgShuffleOff"
                         android:layout_width="30dp"
                         android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#FFFFFF" />
+                        android:src="@drawable/ic_shuffle" />
                     <TextView
                         android:id="@+id/txtShuffleOff"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Orden"
-                        android:textColor="#FFFFFF"
                         android:textSize="10sp"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -199,14 +196,12 @@
                         android:id="@+id/imgShuffleFolder"
                         android:layout_width="30dp"
                         android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#66FFFFFF" />
+                        android:src="@drawable/ic_shuffle" />
                     <TextView
                         android:id="@+id/txtShuffleFolder"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Carpeta"
-                        android:textColor="#66FFFFFF"
                         android:textSize="10sp"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -224,14 +219,12 @@
                         android:id="@+id/imgShuffleCategory"
                         android:layout_width="30dp"
                         android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#66FFFFFF" />
+                        android:src="@drawable/ic_shuffle" />
                     <TextView
                         android:id="@+id/txtShuffleCategory"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Categoría"
-                        android:textColor="#66FFFFFF"
                         android:textSize="10sp"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -249,14 +242,12 @@
                         android:id="@+id/imgShuffleGlobal"
                         android:layout_width="30dp"
                         android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#66FFFFFF" />
+                        android:src="@drawable/ic_shuffle" />
                     <TextView
                         android:id="@+id/txtShuffleGlobal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="General"
-                        android:textColor="#66FFFFFF"
                         android:textSize="10sp"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -524,79 +515,7 @@
             android:gravity="center"
             android:visibility="gone" />
 
-        <!-- Barra de Progreso y Tiempos: Puesta sobre la barra inferior -->
-        <LinearLayout
-            android:id="@+id/layoutProgreso"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_marginBottom="140dp"
-            android:orientation="vertical"
-            android:background="#80000000"
-            android:padding="8dp"
-            android:visibility="gone"
-            android:elevation="20dp">
-
-            <SeekBar
-                android:id="@+id/seekBarVideo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:progressTint="#FFFFFF"
-                android:thumbTint="#FFFFFF" />
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingStart="15dp"
-                android:paddingEnd="15dp">
-
-                <TextView
-                    android:id="@+id/txtTiempoActual"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="00:00"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerInParent="true"
-                    android:orientation="horizontal"
-                    android:gravity="center">
-
-                    <ImageButton
-                        android:id="@+id/btnShuffle"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/ic_shuffle"
-                        android:background="?android:attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Aleatorio"
-                        app:tint="#888888" />
-
-                    <ImageButton
-                        android:id="@+id/btnToggleFavorito"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_marginStart="24dp"
-                        android:src="@android:drawable/btn_star_big_off"
-                        android:background="?android:attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Favorito"
-                        app:tint="#888888" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/txtTiempoRestante"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:text="-00:00"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-            </RelativeLayout>
-        </LinearLayout>
-
-        <!-- Zona Táctil Inferior para Mostrar la Barra por 5s sin Pausar Video -->
+        <!-- Zona Táctil Inferior para Mostrar la Barra de Progreso por 5s sin Pausar Video -->
         <View
             android:id="@+id/zonaInferiorToque"
             android:layout_width="match_parent"
@@ -604,253 +523,94 @@
             android:layout_gravity="bottom"
             android:background="#00000000" />
 
-        <!-- Barra Inferior en Reproductor (Se muestra por 5s al tocar la zona inferior) -->
+        <!-- Barra de Progreso y Control del Video (140dp de alto, se muestra 5s al tocar la zona inferior) -->
         <LinearLayout
-            android:id="@+id/layoutBarraInferiorReproductor"
+            android:id="@+id/layoutProgreso"
             android:layout_width="match_parent"
             android:layout_height="140dp"
             android:layout_gravity="bottom"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#1A1A1A"
-            android:elevation="25dp"
-            android:paddingHorizontal="8dp"
-            android:visibility="gone">
+            android:orientation="vertical"
+            android:background="#D9000000"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="10dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            android:elevation="30dp">
 
-            <LinearLayout
-                android:id="@+id/btnInicioRepro"
-                android:layout_width="60dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true">
-                <ImageView
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:src="@drawable/ic_home_custom"
-                    app:tint="#FFFFFF" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Inicio"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
+            <SeekBar
+                android:id="@+id/seekBarVideo"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:progressTint="#FFFFFF"
+                android:thumbTint="#BB86FC" />
 
-            <LinearLayout
-                android:id="@+id/btnConfiguracionRepro"
-                android:layout_width="60dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true">
-                <ImageView
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:src="@android:drawable/ic_menu_preferences"
-                    app:tint="#FFFFFF" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Ajustes"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btnFavoritosRepro"
-                android:layout_width="60dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true">
-                <ImageView
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:src="@android:drawable/btn_star_big_off"
-                    app:tint="#FFFFFF" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Favoritos"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btnMasVistosRepro"
-                android:layout_width="60dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true">
-                <ImageView
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:src="@android:drawable/ic_menu_recent_history"
-                    app:tint="#FFFFFF" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Más Vistos"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
-
-            <!-- Grupo de 4 Botones de Modo Aleatorio (Shuffle) en Reproductor -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginHorizontal="4dp"
-                android:background="#22FFFFFF"
-                android:paddingHorizontal="2dp">
-
-                <LinearLayout
-                    android:id="@+id/btnShuffleOffRepro"
-                    android:layout_width="55dp"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:id="@+id/imgShuffleOffRepro"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#FFFFFF" />
-                    <TextView
-                        android:id="@+id/txtShuffleOffRepro"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Orden"
-                        android:textColor="#FFFFFF"
-                        android:textSize="10sp"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/btnShuffleFolderRepro"
-                    android:layout_width="55dp"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:id="@+id/imgShuffleFolderRepro"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#66FFFFFF" />
-                    <TextView
-                        android:id="@+id/txtShuffleFolderRepro"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Carpeta"
-                        android:textColor="#66FFFFFF"
-                        android:textSize="10sp"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/btnShuffleCategoryRepro"
-                    android:layout_width="55dp"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:id="@+id/imgShuffleCategoryRepro"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#66FFFFFF" />
-                    <TextView
-                        android:id="@+id/txtShuffleCategoryRepro"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Categoría"
-                        android:textColor="#66FFFFFF"
-                        android:textSize="10sp"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/btnShuffleGlobalRepro"
-                    android:layout_width="55dp"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:id="@+id/imgShuffleGlobalRepro"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:src="@drawable/ic_shuffle"
-                        app:tint="#66FFFFFF" />
-                    <TextView
-                        android:id="@+id/txtShuffleGlobalRepro"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="General"
-                        android:textColor="#66FFFFFF"
-                        android:textSize="10sp"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/layoutBotonesModosRepro"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="horizontal"
-                android:gravity="center" />
+                android:gravity="center_vertical">
 
-            <LinearLayout
-                android:id="@+id/btnScreenOffRepro"
-                android:layout_width="60dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true">
-                <ImageView
-                    android:id="@+id/imgScreenOffRepro"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:src="@drawable/ic_screen_off"
-                    app:tint="#FFFFFF" />
                 <TextView
+                    android:id="@+id/txtTiempoActual"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Pantalla"
+                    android:layout_centerVertical="true"
+                    android:layout_alignParentStart="true"
+                    android:text="00:00"
                     android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-            </LinearLayout>
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <!-- Botones Centrales del Reproductor (Aleatorio Cíclico + Favoritos Corazón) -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <!-- Botón Cíclico de Aleatorio -->
+                    <ImageButton
+                        android:id="@+id/btnShuffle"
+                        android:layout_width="54dp"
+                        android:layout_height="54dp"
+                        android:src="@drawable/ic_shuffle"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Aleatorio"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:tint="#FFFFFF"
+                        android:padding="8dp"
+                        android:scaleType="fitCenter" />
+
+                    <!-- Botón Corazón Favorito -->
+                    <ImageView
+                        android:id="@+id/btnToggleFavorito"
+                        android:layout_width="54dp"
+                        android:layout_height="54dp"
+                        android:layout_marginStart="36dp"
+                        android:src="@android:drawable/btn_star_big_off"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Favorito"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:tint="#888888"
+                        android:padding="8dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/txtTiempoRestante"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_alignParentEnd="true"
+                    android:text="-00:00"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
         </LinearLayout>
 
         <!-- Iconos de Feedback -->
