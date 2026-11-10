@@ -145,6 +145,9 @@ public class MainActivity extends AppCompatActivity {
     private RelativeLayout capaPantallaApagada;
     private TextView txtMusicTitle;
     private TextView txtMusicArtist, txtMusicAlbum, txtMusicYear, txtMusicGenre, txtMusicFile, txtMusicBitrate;
+    private TextView txtClockTime, txtClockDate;
+    private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable clockRunnable;
     private ImageView imgAlbumArt;
     private boolean isScreenOffMode = false;
     private long tiempoPrimerClickAtras = 0;
@@ -195,6 +198,8 @@ public class MainActivity extends AppCompatActivity {
         txtMusicGenre = findViewById(R.id.txtMusicGenre);
         txtMusicFile = findViewById(R.id.txtMusicFile);
         txtMusicBitrate = findViewById(R.id.txtMusicBitrate);
+        txtClockTime = findViewById(R.id.txtClockTime);
+        txtClockDate = findViewById(R.id.txtClockDate);
         imgAlbumArt = findViewById(R.id.imgAlbumArt);
         imgLockStatus = findViewById(R.id.imgLockStatus);
 
@@ -287,6 +292,7 @@ public class MainActivity extends AppCompatActivity {
             
             if (isScreenOffMode) {
                 iniciarAnimacionBarras();
+                iniciarRelojDigital();
                 Toast.makeText(this, "Modo Audio Activado", Toast.LENGTH_SHORT).show();
             }
         });
@@ -1781,6 +1787,9 @@ public class MainActivity extends AppCompatActivity {
             exoPlayer.release();
             exoPlayer = null;
         }
+        if (clockHandler != null && clockRunnable != null) {
+            clockHandler.removeCallbacks(clockRunnable);
+        }
         if (visualizerHandler != null && visualizerRunnable != null) {
             visualizerHandler.removeCallbacks(visualizerRunnable);
         }
@@ -1876,6 +1885,7 @@ public class MainActivity extends AppCompatActivity {
             visualizerHandler.removeCallbacks(visualizerRunnable);
             return;
         }
+        iniciarRelojDigital();
         if (visualizerRunnable != null) return; // Ya está corriendo
 
         View[] bars = {findViewById(R.id.bar1), findViewById(R.id.bar2), findViewById(R.id.bar3), 
@@ -1906,6 +1916,30 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         visualizerHandler.post(visualizerRunnable);
+    }
+
+    private void iniciarRelojDigital() {
+        if (clockRunnable != null) clockHandler.removeCallbacks(clockRunnable);
+        clockRunnable = new Runnable() {
+            private final java.text.SimpleDateFormat sdfTime = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            private final java.text.SimpleDateFormat sdfDate = new java.text.SimpleDateFormat("EEEE, d 'de' MMMM", java.util.Locale.getDefault());
+
+            @Override
+            public void run() {
+                if (txtClockTime != null && txtClockDate != null && capaPantallaApagada != null && capaPantallaApagada.getVisibility() == View.VISIBLE) {
+                    java.util.Date now = new java.util.Date();
+                    String timeStr = sdfTime.format(now);
+                    String dateStr = sdfDate.format(now);
+                    if (!dateStr.isEmpty()) {
+                        dateStr = dateStr.substring(0, 1).toUpperCase() + dateStr.substring(1);
+                    }
+                    txtClockTime.setText(timeStr);
+                    txtClockDate.setText(dateStr);
+                }
+                clockHandler.postDelayed(this, 1000);
+            }
+        };
+        clockHandler.post(clockRunnable);
     }
 
     private void reproducirCarpetaAnteriorGlobal() {
