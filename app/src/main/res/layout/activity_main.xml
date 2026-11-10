@@ -389,34 +389,34 @@
                         android:paddingEnd="10dp"
                         android:paddingTop="5dp">
 
-                        <!-- Hora Digital Inmensa -->
+                        <!-- Hora Digital Inmensa (Doble de Tamaño) -->
                         <TextView
                             android:id="@+id/txtClockTime"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="12:34"
                             android:textColor="#FFFFFF"
-                            android:textSize="58sp"
+                            android:textSize="116sp"
                             android:textStyle="bold"
                             android:fontFamily="sans-serif-condensed"
                             android:letterSpacing="0.05"
                             android:shadowColor="#80000000"
-                            android:shadowDx="2"
-                            android:shadowDy="2"
-                            android:shadowRadius="4" />
+                            android:shadowDx="3"
+                            android:shadowDy="3"
+                            android:shadowRadius="6" />
 
-                        <!-- Fecha en Letra Más Pequeña -->
+                        <!-- Fecha en Letra Proporcional -->
                         <TextView
                             android:id="@+id/txtClockDate"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Lunes, 25 de Octubre"
                             android:textColor="#BB86FC"
-                            android:textSize="15sp"
+                            android:textSize="22sp"
                             android:textStyle="bold"
                             android:fontFamily="sans-serif-condensed"
                             android:textAllCaps="true"
-                            android:layout_marginTop="-6dp" />
+                            android:layout_marginTop="-12dp" />
                     </LinearLayout>
 
                     <!-- Metadatos alineados al centro vertical -->
